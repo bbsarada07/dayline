@@ -18,7 +18,7 @@ export type Me =
     }
   | { kind: "staff"; role: Exclude<Role, "student">; id: number; name: string; username: string };
 
-export type ClockInfo = { now: string; demo: boolean };
+export type ClockInfo = { now: string; demo: boolean; demo_mode: boolean };
 
 export type DayItem = {
   id: string;

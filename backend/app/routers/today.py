@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from app import clock
+from app.config import settings
 from app.auth import require_student
 from app.db import get_session
 from app.models import Student
@@ -32,5 +33,5 @@ def today(student: Student = Depends(require_student), session: Session = Depend
 
 @router.get("/clock")
 def get_clock() -> dict:
-    """Current app time and whether demo time is active. No login needed."""
-    return {"now": clock.local_now().isoformat(), "demo": clock.is_overridden()}
+    """Current app time, whether demo time is active, and whether this is a demo deployment. No login needed."""
+    return {"now": clock.local_now().isoformat(), "demo": clock.is_overridden(), "demo_mode": settings.demo_mode}

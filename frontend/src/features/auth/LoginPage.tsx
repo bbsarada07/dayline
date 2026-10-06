@@ -167,11 +167,7 @@ export function LoginPage() {
             </form>
 
             {demo.data?.enabled ? (
-              <div className="mt-5 flex justify-center">
-                <Button variant="secondary" onClick={() => setDrawerOpen(true)}>
-                  <Users aria-hidden /> Demo accounts
-                </Button>
-              </div>
+              <TryTheDemo demo={demo.data} disabled={login.isPending} onPick={logInAs} onMore={() => setDrawerOpen(true)} />
             ) : null}
           </div>
         </section>
@@ -209,6 +205,63 @@ export function LoginPage() {
         </Sheet>
       ) : null}
     </div>
+  );
+}
+
+const ROLE_HINT = {
+  student: "Order lunch, send a PDF to print, and watch both land on your day line.",
+  canteen: "Watch orders arrive live, move tickets along, and hand food over with a scan.",
+  print: "Work through the print queue by deadline and hand printouts over with a scan.",
+} as const;
+
+/** Demo deployments: one tap into each role, with what to try there. */
+function TryTheDemo({ demo, disabled, onPick, onMore }: {
+  demo: DemoAccounts;
+  disabled: boolean;
+  onPick: (kind: Kind, username: string) => void;
+  onMore: () => void;
+}) {
+  const student = demo.students[0];
+  const canteen = demo.staff.find((s) => s.role === "canteen");
+  const print = demo.staff.find((s) => s.role === "print");
+  const picks = [
+    student && { key: "student", kind: "student" as const, username: student.roll_no, name: student.name, role: "Student", hint: ROLE_HINT.student, tone: "bg-magenta text-white" },
+    canteen && { key: "canteen", kind: "staff" as const, username: canteen.username, name: canteen.name, role: "Canteen staff", hint: ROLE_HINT.canteen, tone: "bg-yellow text-on-fill" },
+    print && { key: "print", kind: "staff" as const, username: print.username, name: print.name, role: "Print shop", hint: ROLE_HINT.print, tone: "bg-cyan text-on-fill" },
+  ].filter(Boolean) as { key: string; kind: Kind; username: string; name: string; role: string; hint: string; tone: string }[];
+
+  return (
+    <section aria-labelledby="try-demo" className="mt-6">
+      <h2 id="try-demo" className="font-display text-21 font-extrabold">Try the demo</h2>
+      <p className="text-13 font-semibold text-muted">
+        One tap logs you in{demo.pin ? ` (every demo account uses PIN ${demo.pin})` : ""}.
+      </p>
+      <ul className="mt-3 grid gap-3">
+        {picks.map((pick) => (
+          <li key={pick.key}>
+            <button
+              type="button"
+              disabled={disabled || !demo.pin}
+              onClick={() => onPick(pick.kind, pick.username)}
+              className="press flex w-full items-start gap-3 rounded-[14px] border-2 border-edge bg-sheet p-3 text-left shadow-hard-sm disabled:opacity-60"
+            >
+              <span className={cn("mt-0.5 shrink-0 rounded-[8px] border-2 border-edge px-2 py-0.5 text-13 font-extrabold", pick.tone)}>
+                {pick.role}
+              </span>
+              <span className="min-w-0">
+                <span className="block font-extrabold">Log in as {pick.name}</span>
+                <span className="block text-13 font-semibold text-muted">{pick.hint}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex justify-center">
+        <Button variant="ghost" onClick={onMore}>
+          <Users aria-hidden /> All demo accounts
+        </Button>
+      </div>
+    </section>
   );
 }
 

@@ -48,18 +48,46 @@ class Settings:
     frontend_dist: Path
     upload_dir: Path
     port: int
+    # Addendum D/F: public URL of the deployment (webhooks, secure cookies) and demo mode.
+    public_base_url: str
+    demo_mode: bool
+
+    @property
+    def https(self) -> bool:
+        """True when the app is served over HTTPS (deployed), so cookies must be Secure."""
+        return self.public_base_url.startswith("https://")
+
+
+def _flag(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    return default if value is None else value.strip().lower() in ("1", "true", "yes", "on")
 
 
 def _secret_key() -> str:
     key = os.environ.get("SECRET_KEY", "")
     if key and key != "change-me":
         return key
+    # Hugging Face Spaces provides a stable per-Space signing secret.
+    if os.environ.get("SPACE_SIGNING_SECRET"):
+        return os.environ["SPACE_SIGNING_SECRET"]
     print(
         f"[{APP_NAME}] SECRET_KEY is not set in .env; using a random key. "
         "Sessions will end when the server restarts.",
         file=sys.stderr,
     )
     return secrets.token_hex(32)
+
+
+def _public_base_url() -> str:
+    """PUBLIC_BASE_URL, else the URL the host provides (Render, Hugging Face Spaces)."""
+    explicit = os.environ.get("PUBLIC_BASE_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    if os.environ.get("RENDER_EXTERNAL_URL"):
+        return os.environ["RENDER_EXTERNAL_URL"].rstrip("/")
+    if os.environ.get("SPACE_HOST"):
+        return f"https://{os.environ['SPACE_HOST']}"
+    return ""
 
 
 def load_settings() -> Settings:
@@ -72,6 +100,8 @@ def load_settings() -> Settings:
         frontend_dist=Path(os.environ.get("FRONTEND_DIST", str(REPO_DIR / "frontend" / "dist"))),
         upload_dir=Path(os.environ.get("UPLOAD_DIR", str(BACKEND_DIR / "uploads"))),
         port=int(os.environ.get("PORT", "8000")),
+        public_base_url=_public_base_url(),
+        demo_mode=_flag("DEMO_MODE", False),
     )
 
 

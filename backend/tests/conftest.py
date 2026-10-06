@@ -10,6 +10,7 @@ _TMP = Path(tempfile.mkdtemp(prefix="dayline-test-"))
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'test.db'}"
 os.environ["UPLOAD_DIR"] = str(_TMP / "uploads")
 os.environ.setdefault("SECRET_KEY", "test-secret")
+os.environ["DEMO_MODE"] = "true"
 
 from fastapi.testclient import TestClient  # noqa: E402
 

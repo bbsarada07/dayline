@@ -7,14 +7,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.auth import COOKIE_NAME, principal_from_token
 from app.config import APP_NAME, settings
 from app.db import create_tables, engine
 from app.errors import ApiError, install_error_handlers
+from app.demo import ensure_demo_clock
 from app.events import hub
-from app.routers import admin, attendance, auth, canteen, collect, timetable, today
+from app.models import Student
+from app.routers import admin, attendance, auth, canteen, collect, system, timetable, today
 from app.routers import print as print_router
 from app.services import maintenance
 
@@ -38,6 +40,14 @@ def lan_addresses() -> list[str]:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     create_tables()
+    # A fresh deployment (or a host that wiped the disk) starts with an empty database.
+    with Session(engine) as session:
+        empty = session.exec(select(Student.id)).first() is None
+    if empty:
+        from app.seed import seed
+
+        seed()
+    ensure_demo_clock()
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     hub.bind_loop(asyncio.get_running_loop())
     print(f"[{APP_NAME}] API ready on port {settings.port}")
@@ -60,7 +70,7 @@ if settings.cors_origins:
         allow_headers=["*"],
     )
 
-for module in (auth, timetable, attendance, today, admin, print_router, canteen, collect):
+for module in (auth, timetable, attendance, today, admin, print_router, canteen, collect, system):
     app.include_router(module.router, prefix="/api")
 
 

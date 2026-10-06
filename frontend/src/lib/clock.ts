@@ -23,5 +23,5 @@ export function useClock(tickMs = 15_000) {
 
   const data = query.data;
   const now = data ? new Date(new Date(data.now).getTime() + (Date.now() - query.dataUpdatedAt)) : null;
-  return { now, demo: data?.demo ?? false, query };
+  return { now, demo: data?.demo ?? false, demoMode: data?.demo_mode ?? false, query };
 }

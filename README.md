@@ -2,7 +2,11 @@
 
 A campus web app for students of one engineering college: the timetable, attendance, canteen pre-orders and print jobs, all tied to the student's day.
 
-> **Status: Phase 4 of `DAYLINE_ADDENDUM_V2.md` section K done (foundation, Today screen, attendance, print, canteen, collect by barcode).** The full README (architecture diagram, sponsor integrations, demo script, known limits) is written in Phase 10.
+> **Status: Phase 5 of `DAYLINE_ADDENDUM_V2.md` section K (deploy) built.** Foundation, Today screen, attendance, print, canteen and collect by barcode are done. The full README (architecture diagram, sponsor integrations, demo script, known limits) is written in Phase 10.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bbsarada07/dayline)
+
+Deployment steps, limits and alternatives: [DEPLOY.md](DEPLOY.md).
 
 The product name is set in one place: `app.config.json`.
 
@@ -18,7 +22,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate            # Windows
 # source .venv/bin/activate       # macOS / Linux
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # runtime + test tools
 copy .env.example .env            # then set SECRET_KEY (see the comment in the file)
 python -m app.seed                # reset the database and load placeholder data
 python -m app                     # API on http://0.0.0.0:8000
@@ -90,3 +94,10 @@ Admins can set **demo time** on the admin screen. The app's clock then runs from
 - The kitchen board and the print queue each have a **Collect** field that keeps focus. A USB barcode scanner types the code and presses Enter; everything ready for that student at that desk is handed over, and their pass is stamped "Collected" live.
 - Results: Collected, Not ready yet, Nothing to collect, Unknown card, each shown large for 4 seconds with a distinct sound (toggle on the desk). A second scan of the same card within 3 seconds is ignored. Every scan is logged.
 - No scanner? In demo mode, use **Simulate scan** beside the field.
+
+## Deploy and demo mode (Phase 5)
+
+- One Docker container (`Dockerfile`) serves the API, the realtime socket and the built frontend. `render.yaml` deploys it to Render's free plan in one click; see [DEPLOY.md](DEPLOY.md).
+- An empty database is seeded on boot, so a fresh deployment is ready to use.
+- With `DEMO_MODE=true` the clock starts at this week's **Monday 12:20** and runs forward. The banner offers **Reset demo**, which re-seeds everything and puts the clock back. Seed it the same way locally with `python -m app.seed --demo`.
+- `GET /api/health` reports the database and whether Qdrant, Lyzr and Omi are configured (it never returns secret values).

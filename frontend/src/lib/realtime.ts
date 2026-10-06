@@ -52,6 +52,10 @@ function invalidate(client: QueryClient, event: RealtimeEvent) {
       // Demo time or thresholds changed: everything time- or setting-based is stale.
       client.invalidateQueries();
       break;
+    case "demo.reset":
+      // Someone pressed "Reset demo": all data was re-seeded, so refetch everything.
+      client.invalidateQueries();
+      break;
     case "print.created":
     case "print.updated":
       // Quotes are left to their own 30-second refresh: the paying student's quote

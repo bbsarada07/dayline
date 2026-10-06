@@ -1,0 +1,19 @@
+# Render Blueprint: one free Docker web service.
+# Deploy: https://render.com/deploy?repo=https://github.com/bbsarada07/dayline
+# Integration keys (Qdrant, Lyzr, Omi) are added later in the Render dashboard.
+services:
+  - type: web
+    name: dayline
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEMO_MODE
+        value: "true"
+      - key: AGENT_MODE
+        value: mock

@@ -215,10 +215,21 @@ def _clear_uploads() -> None:
             path.unlink(missing_ok=True)
 
 
-def seed() -> None:
+def seed(demo: bool | None = None) -> None:
+    """Reset every table and load placeholder data.
+
+    With `demo` (default: the DEMO_MODE setting) the clock is set to this week's
+    Monday 12:20 and canteen history is built from the weeks before it.
+    """
+    from app import demo as demo_mode  # local import: demo imports seed lazily too
+
+    demo = settings.demo_mode if demo is None else demo
     _clear_uploads()
     SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
+    settings_service.invalidate()  # old settings (e.g. a previous demo time) are gone with the tables
+    start = demo_mode.demo_start() if demo else None
+    today = start.date() if start else clock.today()
     pin_hash = hash_pin(DEMO_PIN)
 
     with Session(engine) as session:
@@ -243,7 +254,7 @@ def seed() -> None:
         session.commit()
         for item in menu:
             session.refresh(item)
-        orders, order_lines = _past_orders(students, menu, clock.today())
+        orders, order_lines = _past_orders(students, menu, today)
         session.add_all(orders)
         session.flush()
         for order, items in zip(orders, order_lines):
@@ -259,10 +270,20 @@ def seed() -> None:
         session.commit()
 
     settings_service.invalidate()
+    if start:
+        clock.set_demo_time(start)
     print(f"Seeded {len(STUDENTS)} students, {len(STAFF)} staff, {len(SUBJECTS)} subjects, "
           f"{len(ROOMS)} rooms, {len(MENU)} menu items and {PAST_DAYS} days of past orders. "
-          f"PIN for every account: {DEMO_PIN}")
+          f"PIN for every account: {DEMO_PIN}"
+          + (f". Demo time: {start:%a %d %b %H:%M}" if start else ""))
 
 
 if __name__ == "__main__":
-    seed()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Reset the database and load placeholder data.")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--demo", dest="demo", action="store_true", default=None,
+                       help="start the demo clock at this week's Monday 12:20 (default: DEMO_MODE)")
+    group.add_argument("--no-demo", dest="demo", action="store_false", help="real time, no demo clock")
+    seed(demo=parser.parse_args().demo)

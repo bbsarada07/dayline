@@ -10,6 +10,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
+from app.config import settings
 from app.db import engine
 from app.models import Setting
 
@@ -24,7 +25,8 @@ DEFAULTS: dict[str, Any] = {
     "print_seconds_per_page": 4,
     "canteen_hours": {"open": "08:30", "close": "16:30"},
     "no_show_minutes": 30,
-    "demo_mode": True,
+    # Seeded from the DEMO_MODE environment variable (addendum D).
+    "demo_mode": settings.demo_mode,
     "readers": [
         {"id": "canteen-1", "station": "canteen"},
         {"id": "print-1", "station": "print"},
