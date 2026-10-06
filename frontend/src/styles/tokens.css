@@ -1,0 +1,60 @@
+/*
+ * Design tokens (spec 9.1). Colours come from print inks.
+ * Each agent owns one colour everywhere: magenta = timetable,
+ * cyan = print, yellow = canteen. Yellow and cyan are fills only,
+ * always with --on-fill text, never text on paper.
+ */
+:root {
+  --ink: #14163a;
+  --paper: #f4f6fa;
+  --sheet: #ffffff;
+  --cyan: #00b8d9;
+  --magenta: #e6397f;
+  --yellow: #ffc400;
+  --stamp: #1f9d61;
+  --alert: #d92d20;
+
+  /* Derived tokens, chosen for 4.5:1 contrast on --sheet and --paper. */
+  --on-fill: #14163a; /* text on yellow / cyan fills, both themes */
+  --muted: #4c5173;
+  --line: #d9dce8;
+  --tint: #e9ecf3;
+  --alert-text: #b42318;
+  --stamp-text: #146c43;
+  --magenta-text: #b8195a;
+  --focus: #14163a;
+  --float-shadow: 0 8px 28px rgb(20 22 58 / 0.14), 0 2px 6px rgb(20 22 58 / 0.08);
+
+  /* "Press" layer: ink edges and hard, off-register shadows like a misprint. */
+  --edge: #14163a;
+  --drop: #14163a;
+  --hero: #14163a;
+  --hero-text: #f4f6fa;
+  --hero-muted: #c3c7e6;
+  --grain: rgb(20 22 58 / 0.08);
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --ink: #f4f6fa;
+  --paper: #14163a;
+  --sheet: #1e2150;
+  --muted: #b9bddb;
+  --line: #3a3e74;
+  --tint: #272b5e;
+  --alert-text: #ff8a80;
+  --stamp-text: #5fd39a;
+  --magenta-text: #ff7eb1;
+  --focus: #f4f6fa;
+  --float-shadow: 0 8px 28px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+
+  --edge: #f4f6fa;
+  --drop: #04051a;
+  --hero: #0b0c27;
+  --hero-text: #f4f6fa;
+  --hero-muted: #c3c7e6;
+  --grain: rgb(244 246 250 / 0.07);
+
+  color-scheme: dark;
+}

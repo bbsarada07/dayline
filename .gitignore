@@ -1,0 +1,28 @@
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+backend/.env
+# Any .env file anywhere (secrets); the example file is safe to commit.
+.env
+.env.*
+!.env.example
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Local tooling and OS files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/

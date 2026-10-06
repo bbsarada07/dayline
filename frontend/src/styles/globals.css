@@ -1,0 +1,175 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  /* Only our tokens: drop Tailwind's default palette and type scale. */
+  --color-*: initial;
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-sheet: var(--sheet);
+  --color-cyan: var(--cyan);
+  --color-magenta: var(--magenta);
+  --color-yellow: var(--yellow);
+  --color-stamp: var(--stamp);
+  --color-alert: var(--alert);
+  --color-on-fill: var(--on-fill);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-tint: var(--tint);
+  --color-alert-text: var(--alert-text);
+  --color-stamp-text: var(--stamp-text);
+  --color-magenta-text: var(--magenta-text);
+  --color-edge: var(--edge);
+  --color-hero: var(--hero);
+  --color-hero-text: var(--hero-text);
+  --color-hero-muted: var(--hero-muted);
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+
+  --text-*: initial;
+  --text-13: 13px;
+  --text-13--line-height: 1.4;
+  --text-15: 15px;
+  --text-15--line-height: 1.45;
+  --text-17: 17px;
+  --text-17--line-height: 1.4;
+  --text-21: 21px;
+  --text-21--line-height: 1.25;
+  --text-28: 28px;
+  --text-28--line-height: 1.15;
+  --text-40: 40px;
+  --text-40--line-height: 1.05;
+  --text-64: 64px;
+  --text-64--line-height: 1;
+
+  --radius-surface: 12px;
+  --radius-button: 10px;
+  --shadow-float: var(--float-shadow);
+  --shadow-hard-sm: 2px 2px 0 0 var(--drop);
+  --shadow-hard: 4px 4px 0 0 var(--drop);
+  --shadow-hard-lg: 7px 7px 0 0 var(--drop);
+  --shadow-hard-magenta: 4px 4px 0 0 var(--magenta);
+  --shadow-hard-cyan: 4px 4px 0 0 var(--cyan);
+  --shadow-none: 0 0 #0000;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-paper font-sans text-15 text-ink antialiased;
+    min-height: 100dvh;
+    /* Paper grain: a faint dot grid, like the back of a print sheet. */
+    background-image: radial-gradient(var(--grain) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * Passes look like tickets: a notch cut into each side at the tear line
+ * (--tear, the header height). Two half-width masks avoid mask-composite.
+ */
+@layer components {
+  .ticket {
+    --notch: 9px;
+    --tear: 46px; /* 2px border + 44px header */
+    -webkit-mask:
+      radial-gradient(circle var(--notch) at 0 var(--tear), #0000 calc(100% - 0.5px), #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch) at 100% var(--tear), #0000 calc(100% - 0.5px), #000) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle var(--notch) at 0 var(--tear), #0000 calc(100% - 0.5px), #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch) at 100% var(--tear), #0000 calc(100% - 0.5px), #000) right / 51% 100% no-repeat;
+  }
+}
+
+@layer components {
+  /* Halftone dots in the current text colour. */
+  .halftone {
+    background-image: radial-gradient(circle, color-mix(in srgb, currentColor 30%, transparent) 1.3px, transparent 1.8px);
+    background-size: 10px 10px;
+  }
+  /* Diagonal hatch, used for breaks and free time. */
+  .hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--ink) 9%, transparent) 0 2px,
+      transparent 2px 9px
+    );
+  }
+  /* Off-register "misprint" heading. */
+  .misprint {
+    text-shadow: 3px 3px 0 var(--magenta);
+  }
+  .misprint-cyan {
+    text-shadow: 3px 3px 0 var(--cyan);
+  }
+  /* Tactile press: the hard shadow collapses as the element is pushed down. */
+  .press {
+    transition: transform 90ms ease, box-shadow 90ms ease;
+  }
+  .press:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 #0000;
+  }
+  /* Drop shadow that follows a masked shape (tickets with notches). */
+  .drop-hard {
+    filter: drop-shadow(4px 4px 0 var(--drop));
+  }
+}
+
+/* Live things pulse; nothing else moves on its own. */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--magenta) 55%, transparent); }
+  100% { box-shadow: 0 0 0 12px transparent; }
+}
+.pulse-ring {
+  animation: pulse-ring 1.8s ease-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@keyframes notice-in {
+  from { transform: translateY(-14px) rotate(-1deg); opacity: 0; }
+  to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+.notice-in {
+  animation: notice-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
