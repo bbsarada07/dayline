@@ -215,6 +215,31 @@ def _clear_uploads() -> None:
             path.unlink(missing_ok=True)
 
 
+def _demo_memories(start: datetime, menu_ids: dict[str, int]) -> None:
+    """Ananya's history in shared memory, so the agents' demo has something to remember:
+    her usual Monday lunch (the last three Mondays), how she printed last time, and a deadline."""
+    from app.services import memory_service
+
+    usual = [("Veg fried rice", 1), ("Masala chai", 1)]
+    items = [{"menu_item_id": menu_ids[name], "name": name, "qty": qty} for name, qty in usual]
+    text = ", ".join(f"{name} × {qty}" for name, qty in usual)
+    student_id = 1  # Ananya, the first seeded student
+    try:
+        for weeks in (3, 2, 1):
+            ordered = start - timedelta(weeks=weeks, minutes=5)
+            memory_service.remember(
+                student_id, f"Ordered {text} for 12:40 pm pickup on a Monday", kind="action", written_by="canteen",
+                data={"order_id": None, "weekday": 0, "pickup": "12:40", "items": items}, at=ordered)
+        memory_service.remember(
+            student_id, "Printed DBMS_lab_record.pdf: 2 copies, black and white, double sided", kind="action",
+            written_by="print", data={"copies": 2, "color": False, "double_sided": True, "pages": 4},
+            at=start - timedelta(days=4, hours=2))
+        memory_service.remember(student_id, "My DBMS lab record is due Thursday", kind="fact", written_by="student",
+                                at=start - timedelta(days=2, hours=5))
+    except Exception as exc:  # memory being down mustn't stop a reset
+        print(f"Couldn't write the demo memories: {exc!r}")
+
+
 def seed(demo: bool | None = None) -> None:
     """Reset every table and load placeholder data.
 
@@ -268,6 +293,7 @@ def seed(demo: bool | None = None) -> None:
         values = dict(settings_service.DEFAULTS) | {"demo_pin": DEMO_PIN}
         session.add_all(Setting(key=k, value=json.dumps(v)) for k, v in values.items())
         session.commit()
+        menu_ids = {item.name: item.id for item in menu}
 
     settings_service.invalidate()
     if start:
@@ -277,6 +303,8 @@ def seed(demo: bool | None = None) -> None:
     from app.services import memory_service
 
     memory_service.forget_students(list(range(1, len(STUDENTS) + 1)))
+    if start:
+        _demo_memories(start, menu_ids)
     print(f"Seeded {len(STUDENTS)} students, {len(STAFF)} staff, {len(SUBJECTS)} subjects, "
           f"{len(ROOMS)} rooms, {len(MENU)} menu items and {PAST_DAYS} days of past orders. "
           f"PIN for every account: {DEMO_PIN}"

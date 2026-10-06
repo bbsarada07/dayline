@@ -9,6 +9,7 @@ from app import clock, demo
 from app.config import APP_NAME, settings
 from app.db import get_session
 from app.models import Student
+from app.agents import llm
 from app.services import memory_service
 
 router = APIRouter(tags=["system"])
@@ -38,8 +39,8 @@ def _qdrant_health() -> dict:
 def health(session: Session = Depends(get_session)) -> dict:
     """Is the app up, and which integrations are configured? No login; never returns secret values.
 
-    Qdrant is checked live (Phase 6). Lyzr and Omi are reported as configured or not;
-    their live checks are added with Phases 7 and 8.
+    Qdrant is checked live. Lyzr reports which mode the agents run in and how many of
+    today's Lyzr calls are used (no call is made). Omi's check comes with Phase 8.
     """
     try:
         students = session.exec(select(func.count(Student.id))).one()
@@ -59,6 +60,9 @@ def health(session: Session = Depends(get_session)) -> dict:
             "configured": _set("LYZR_API_KEY"),
             "agents_configured": sum(_set(name) for name in LYZR_AGENT_VARS),
             "agents_expected": len(LYZR_AGENT_VARS),
+            "mode": llm.mode(),
+            "calls_today": llm.budget.used_today(),
+            "daily_call_limit": llm.budget.limit,
             "connection_checked": False,
         },
         "omi": {"configured": _set("OMI_APP_ID", "OMI_APP_SECRET"), "connection_checked": False},

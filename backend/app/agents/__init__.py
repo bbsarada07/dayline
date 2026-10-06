@@ -1,1 +1,1 @@
-"""Agents (addendum H). Phase 6 has only the mock router's "remember that" intent."""
+"""Agents (addendum H): an orchestrator and three sub-agents, run by our backend (see orchestrator.py)."""

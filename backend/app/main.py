@@ -16,7 +16,7 @@ from app.errors import ApiError, install_error_handlers
 from app.demo import ensure_demo_clock
 from app.events import hub
 from app.models import Student
-from app.routers import admin, attendance, auth, canteen, collect, memory, system, timetable, today
+from app.routers import admin, agent, agent_tools, attendance, auth, canteen, collect, memory, system, timetable, today
 from app.routers import print as print_router
 from app.services import maintenance, memory_service
 
@@ -73,7 +73,8 @@ if settings.cors_origins:
         allow_headers=["*"],
     )
 
-for module in (auth, timetable, attendance, today, admin, print_router, canteen, collect, system, memory):
+for module in (auth, timetable, attendance, today, admin, print_router, canteen, collect, system, memory, agent,
+               agent_tools):
     app.include_router(module.router, prefix="/api")
 
 

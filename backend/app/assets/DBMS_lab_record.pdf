@@ -1,0 +1,101 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 227 >>
+stream
+BT
+/F1 22 Tf
+72 760 Td
+(DBMS Lab Record) Tj
+/F1 14 Tf
+0 -30 Td (Ananya Rao  |  22CS001  |  CSE 3A) Tj
+0 -30 Td () Tj
+0 -30 Td (Experiment 1: ER model for a college canteen) Tj
+0 -30 Td (Experiment 2: Normalisation to 3NF) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+4 0 obj
+<< /Length 236 >>
+stream
+BT
+/F1 22 Tf
+72 760 Td
+(Experiment 3: SQL joins) Tj
+/F1 14 Tf
+0 -30 Td (SELECT s.name, o.token_no FROM student s) Tj
+0 -30 Td (JOIN orders o ON o.student_id = s.id;) Tj
+0 -30 Td () Tj
+0 -30 Td (Result: verified on the lab server.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 217 >>
+stream
+BT
+/F1 22 Tf
+72 760 Td
+(Experiment 4: Transactions) Tj
+/F1 14 Tf
+0 -30 Td (BEGIN; UPDATE menu SET stock = stock - 1;) Tj
+0 -30 Td (COMMIT;) Tj
+0 -30 Td () Tj
+0 -30 Td (Observation: concurrent updates serialise.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 244 >>
+stream
+BT
+/F1 22 Tf
+72 760 Td
+(Experiment 5: Indexing) Tj
+/F1 14 Tf
+0 -30 Td (CREATE INDEX idx_roll ON student\(roll_no\);) Tj
+0 -30 Td () Tj
+0 -30 Td (Conclusion: lookups drop from a scan to an index seek.) Tj
+0 -30 Td (Signature: ____________) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R] /Count 4 >>
+endobj
+11 0 obj
+<< /Type /Catalog /Pages 10 0 R >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000000357 00000 n 
+0000000484 00000 n 
+0000000771 00000 n 
+0000000898 00000 n 
+0000001166 00000 n 
+0000001293 00000 n 
+0000001588 00000 n 
+0000001715 00000 n 
+0000001791 00000 n 
+trailer
+<< /Size 12 /Root 11 0 R >>
+startxref
+1842
+%%EOF

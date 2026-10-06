@@ -184,9 +184,9 @@ def _next_ts(now: datetime) -> int:
 
 def remember(
     student_id: int, text: str, *, kind: str, written_by: str,
-    source_ref: str | None = None, data: dict[str, Any] | None = None,
+    source_ref: str | None = None, data: dict[str, Any] | None = None, at: datetime | None = None,
 ) -> Memory:
-    """Write one memory for this student."""
+    """Write one memory for this student. `at` backdates it (demo history only)."""
     if kind not in KINDS:
         raise ApiError(422, "bad_kind", f"Memory kind must be one of {', '.join(KINDS)}.")
     if written_by not in WRITERS:
@@ -194,10 +194,11 @@ def remember(
     text = _clean(text)
     if not text:
         raise ApiError(422, "empty_memory", "There's nothing to remember. Say what Dayline should remember.")
-    now = clock.local_now()
+    now = at or clock.local_now()
     payload = {
         "student_id": str(student_id), "kind": kind, "text": text, "written_by": written_by,
-        "source_ref": source_ref, "created_at": now.isoformat(), "created_ts": _next_ts(now),
+        "source_ref": source_ref, "created_at": now.isoformat(),
+        "created_ts": int(at.timestamp() * 1000) if at else _next_ts(now),
         "last_used_at": None, "data": data or {},
     }
     point_id = str(uuid.uuid4())

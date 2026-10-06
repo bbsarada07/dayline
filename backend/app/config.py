@@ -58,6 +58,14 @@ class Settings:
     qdrant_api_key: str
     qdrant_collection: str
     memory_model: str
+    # Lyzr agents (addendum H, Phase 7). Agent ids come from scripts/setup_lyzr.py.
+    lyzr_api_key: str
+    lyzr_base_url: str
+    lyzr_agent_ids: dict[str, str]
+    lyzr_timeout_seconds: float
+    lyzr_daily_call_limit: int
+    # Shared secret for /api/agent-tools/* (sent with a per-run token).
+    tool_key: str
 
     @property
     def https(self) -> bool:
@@ -114,6 +122,15 @@ def load_settings() -> Settings:
         qdrant_api_key=os.environ.get("QDRANT_API_KEY", "").strip(),
         qdrant_collection=os.environ.get("QDRANT_COLLECTION", "").strip() or "dayline_memory",
         memory_model=os.environ.get("MEMORY_MODEL", "").strip() or "sentence-transformers/all-minilm-l6-v2",
+        lyzr_api_key=os.environ.get("LYZR_API_KEY", "").strip(),
+        lyzr_base_url=os.environ.get("LYZR_BASE_URL", "").strip().rstrip("/") or "https://agent-prod.studio.lyzr.ai/v3",
+        lyzr_agent_ids={
+            agent: os.environ.get(f"LYZR_{agent.upper()}_AGENT_ID", "").strip()
+            for agent in ("orchestrator", "timetable", "print", "canteen", "listener")
+        },
+        lyzr_timeout_seconds=float(os.environ.get("LYZR_TIMEOUT_SECONDS", "20")),
+        lyzr_daily_call_limit=int(os.environ.get("LYZR_DAILY_CALL_LIMIT", "100")),
+        tool_key=os.environ.get("TOOL_KEY", "").strip(),
     )
 
 
