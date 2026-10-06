@@ -24,7 +24,7 @@ export function useBecameWhileShown<T>(value: T, target: T): boolean {
 export function Stamp({ text, tone, press = false }: { text: string; tone: keyof typeof TONE; press?: boolean }) {
   const reduce = useReducedMotion();
   const className = cn(
-    "inline-block -rotate-6 rounded-[6px] border-[3px] px-2 py-0.5 font-display text-15 leading-none font-extrabold",
+    "inline-block -rotate-6 rounded-[6px] border-[3px] px-2 py-0.5 font-display text-15 leading-none font-extrabold whitespace-nowrap",
     TONE[tone],
   );
   if (!press || reduce) return <span className={className}>{text}</span>;

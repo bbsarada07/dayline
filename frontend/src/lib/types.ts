@@ -43,6 +43,17 @@ export type TodayData = {
   next_class: DayItem | null;
   print_jobs: PrintJob[];
   orders: Order[];
+  nudges: Nudge[];
+};
+
+/** A rule-based suggestion on Today: open a screen (to) or ask Dayline (ask). */
+export type Nudge = {
+  id: string;
+  agent: "timetable" | "print" | "canteen";
+  text: string;
+  action: string;
+  to: string | null;
+  ask: string | null;
 };
 
 export type Standing = {
@@ -229,3 +240,61 @@ export type MemoryStatus = {
 };
 
 export type MemoryList = { status: MemoryStatus; query: string | null; memories: MemoryItem[] };
+
+// --- Ask Dayline (agents) -----------------------------------------------------------
+
+export type AgentName = "orchestrator" | "timetable" | "print" | "canteen";
+
+/** One step in a run's trace, as streamed over SSE. */
+export type TraceEvent =
+  | { type: "run"; conversation_id: string; mode: "lyzr" | "mock" }
+  | { type: "agent_started" | "agent_finished"; agent: AgentName; label: string }
+  | { type: "tool_called"; agent: AgentName; for?: AgentName | null; tool: string; label: string; ok: boolean }
+  | { type: "memory_read"; agent: AgentName; label: string; count: number; items?: string[] }
+  | { type: "memory_write"; agent: AgentName; label: string; text: string }
+  | { type: "proposal"; proposal: Proposal }
+  | { type: "note"; text: string }
+  | { type: "final"; reply: string; proposals: Proposal[]; agents: AgentName[]; refused: boolean }
+  | { type: "error"; message: string };
+
+export type PrintProposal = {
+  id: string;
+  type: "print";
+  agent: "print";
+  title: string;
+  pages: number;
+  copies: number;
+  color: boolean;
+  double_sided: boolean;
+  cost: number; // paise
+  deadline: string;
+  deadline_reason: string | null;
+  est_ready_at: string;
+  warning: string | null;
+  body: { upload_id: string; copies: number; color: boolean; double_sided: boolean; deadline: string | null };
+};
+
+export type OrderProposal = {
+  id: string;
+  type: "order";
+  agent: "canteen";
+  lines: { menu_item_id: number; name: string; qty: number; line_total: number; is_veg: boolean }[];
+  total: number; // paise
+  pickup_time: string;
+  pickup_reason: string | null;
+  body: { items: { menu_item_id: number; qty: number }[]; pickup_time: string; expected_total: number };
+};
+
+export type Proposal = PrintProposal | OrderProposal;
+
+export type AgentHistory = {
+  conversation_id: string | null;
+  mode: "lyzr" | "mock";
+  messages: {
+    id: number;
+    role: "user" | "assistant";
+    content: string;
+    created_at: string;
+    trace: { events?: TraceEvent[]; proposals?: Proposal[]; agents?: AgentName[]; refused?: boolean; upload_id?: string } | null;
+  }[];
+};

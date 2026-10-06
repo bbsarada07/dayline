@@ -2,7 +2,7 @@
 
 A campus web app for students of one engineering college: the timetable, attendance, canteen pre-orders and print jobs, all tied to the student's day.
 
-> **Status: Phase 6 of `DAYLINE_ADDENDUM_V2.md` section K (Qdrant shared memory) built.** Foundation, Today screen, attendance, print, canteen, collect by barcode and deployment are done. The full README (architecture diagram, sponsor integrations, demo script, known limits) is written in Phase 10.
+> **Status: Phase 7 of `DAYLINE_ADDENDUM_V2.md` section K (Lyzr agents) built.** Foundation, Today screen, attendance, print, canteen, collect by barcode, deployment and Qdrant shared memory are done. The full README (architecture diagram, sponsor integrations, demo script, known limits) is written in Phase 10.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bbsarada07/dayline)
 
@@ -60,6 +60,11 @@ The server prints its LAN address, for example `http://192.168.1.3:8000`. Open t
 | `SESSION_DAYS` | How long a login lasts. Default 7. |
 | `SERVE_FRONTEND` | `true` to serve `frontend/dist` from the API server. |
 | `CORS_ORIGINS` | Only needed when the frontend runs on another origin without the Vite proxy. |
+| `AGENT_MODE` | `mock` (keyword router, no key, no credits) or `lyzr` (real agents, once the key and agent ids are set). |
+| `LYZR_API_KEY`, `LYZR_*_AGENT_ID` | Lyzr key and the five agent ids printed by `scripts/setup_lyzr.py`. |
+| `LYZR_MODEL`, `LYZR_TEMPLATE_AGENT_ID` | Used only by `setup_lyzr.py`: the model, and a hand-made Studio agent whose provider settings it copies. |
+| `LYZR_TIMEOUT_SECONDS`, `LYZR_DAILY_CALL_LIMIT` | Per-call wait (default 20) and real calls allowed per day (default 100); past either, the keyword router answers. |
+| `TOOL_KEY` | Optional. Turns on `/api/agent-tools/*` for agents hosted elsewhere. |
 
 ## Demo accounts (placeholder data)
 
@@ -110,3 +115,16 @@ Admins can set **demo time** on the admin screen. The app's clock then runs from
 - Written automatically after each order ("Ordered Veg fried rice × 1 for 12:40 pickup on a Monday") and print job ("Printed lab_record.pdf: 2 copies, black and white, double sided"), and when the student says "Remember that …" on the Memory screen.
 - The **Memory** screen lists memories newest first, searches by meaning, shows who wrote each one and when it was last used, and deletes one or all.
 - If Qdrant can't be reached, memories go to a temporary in-process store and the Memory screen says so; the app keeps working and reconnects automatically.
+
+## Agents with Lyzr (Phase 7)
+
+- **Ask Dayline**: on phones, the bar above the dock opens a full-height sheet; on laptops, it's a panel on Today and a button on every other screen. Type, hold the mic to talk (where the browser supports it; spoken replies can be muted), attach a PDF, or tap a shortcut.
+- **Five agents:** Orchestrator, Timetable, Print, Canteen (and a Listener for Omi in Phase 8). Their instructions are `backend/app/agents/prompts/*.md`; `python -m scripts.setup_lyzr --apply` creates or updates them in Lyzr and prints their ids.
+- **Our backend orchestrates** (addendum H fallback): the free plan's custom tools would need a public tool server for every call, so Lyzr agents answer in JSON (which agents to ask, which tools to call) and the backend runs the tools itself (`backend/app/agents/orchestrator.py`, `tools.py`). Each agent call falls back to the keyword router (`mock_router.py`) on timeout, error, bad JSON or the daily call limit, and the trace says so.
+- **The model never sees who the student is.** Each message starts a run with a random 5-minute run token; tools take no student id and their arguments reject unknown fields; Lyzr sees a pseudonymous user id. Questions about another student are refused before any model is called.
+- **Numbers come from tools.** An answer with a number that isn't in the tool results is replaced by the router's answer from the same results.
+- **Agents never spend money.** Food orders and print jobs come back as dashed proposal cards; "Confirm and pay" uses the normal canteen and print endpoints, and "Edit" opens those screens filled in.
+- **The trace:** each agent joins as a chip and fills with its colour when it's done (Timetable magenta, Print cyan, Canteen yellow), with every tool call and memory read or write listed underneath; it folds to one line when the answer arrives.
+- **Shared memory in action:** "Get me lunch" uses your usual for that weekday; "Print this like last time" reuses the last settings; "My DBMS lab record is due Thursday" sets that file's deadline. The demo seeds these for Ananya.
+- **Nudges on Today** (at most two, from rules, not a model): something ready to collect, a lab within an hour and nothing printing, lunch within 30 minutes and nothing ordered, a subject below the threshold.
+- Tests: `pytest tests/test_agents.py` (mock mode, plus a fake Lyzr that checks the exact request shape and that no request carries the student's name, roll number or id).

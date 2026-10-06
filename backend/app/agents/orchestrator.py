@@ -66,6 +66,13 @@ def numbers_check(text: str, *sources: Any) -> bool:
     return all(n in haystack for n in _numbers(text))
 
 
+def plain(text: str) -> str:
+    """The reply as plain text: models sometimes add markdown (bold, bullets) the app would show literally."""
+    text = re.sub(r"(\*\*|__)(.+?)\1", r"\2", text or "")
+    lines = [re.sub(r"^\s*(?:[-*•]|\d+\.)\s+", "", line).strip() for line in text.splitlines()]
+    return re.sub(r"\s+([.,;:])", r"\1", " ".join(line for line in lines if line)).strip()
+
+
 class Engine:
     def __init__(self, client: LLMClient | None = None):
         self.client = client or default_client()
@@ -88,7 +95,9 @@ class Engine:
                     run.note(f"The {NAMES[agent]} agent's answer didn't make sense, so the offline router stepped in.")
                 except LLMError as exc:
                     log.warning("%s agent failed: %s", agent, exc)
-                    run.note(f"The {NAMES[agent]} agent didn't answer ({exc}), so the offline router stepped in.")
+                    run.note(f"The {NAMES[agent]} agent didn't answer in time, so the offline router stepped in."
+                             if "in time" in str(exc) else
+                             f"The {NAMES[agent]} agent couldn't be reached, so the offline router stepped in.")
         return self.mock.complete(agent, envelope, user_id="", session_id=""), True
 
     # --- the run ---------------------------------------------------------------------------------
@@ -158,6 +167,7 @@ class Engine:
     def _final(self, run: Run, outcome: Outcome) -> Outcome:
         latest = {p["type"]: p for p in run.proposals}  # an agent that proposed twice: its last proposal counts
         run.proposals[:] = list(latest.values())
+        outcome.reply = plain(outcome.reply)
         outcome.proposals = run.proposals
         outcome.agents = run.agents_used or outcome.agents
         run.send("final", {"reply": outcome.reply, "proposals": outcome.proposals, "agents": outcome.agents,
@@ -190,7 +200,10 @@ class Engine:
         run.send("agent_started", {"agent": agent, "label": STARTED[agent]})
         ctx = RunContext(session, student, run, agent)
         results: list[dict[str, Any]] = []
-        envelope = {**base, "agent": agent, "task": task, "results": results}
+        # Sub-agents read memory through their own tools (recall, usual_order...), so each read shows in
+        # the trace and a stale memory can't quietly override what the student just asked for.
+        envelope = {**{k: v for k, v in base.items() if k != "memories"}, "agent": agent, "task": task,
+                    "results": results}
         answer = None
         for round_no in range(MAX_TOOL_ROUNDS + 1):
             envelope["must_answer"] = round_no == MAX_TOOL_ROUNDS
@@ -217,6 +230,10 @@ class Engine:
         if tool is None or name not in ACCESS[agent]:
             entry["error"] = f"{NAMES[agent]} can't use a tool called {name}."
             ctx.run.send("tool_called", {"agent": agent, "tool": name, "label": entry["error"], "ok": False})
+            return entry
+        # One proposal of each kind per run: a repeat would only replace the card the student is reading.
+        if name.startswith("propose_") and any(p["agent"] == agent for p in ctx.run.proposals):
+            entry["error"] = "Already prepared: the student sees it below. Answer now."
             return entry
         # Print and Canteen ask Timetable for the student's schedule: shown as Timetable's work.
         owner = tool.owner if tool.owner in SUB_AGENTS else agent

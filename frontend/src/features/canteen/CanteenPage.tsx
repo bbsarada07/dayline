@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, Clock, Minus, Plus, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/states";
@@ -12,6 +13,7 @@ import { money, plural, timeOfDay } from "@/lib/format";
 import { useMediaQuery } from "@/lib/media";
 import type { CanteenQuote, MenuData, MenuItem, Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { CanteenPrefill } from "@/features/ask/ProposalCard";
 import { markNewPass } from "@/features/today/DayLine";
 import { OrderPass, OrderSheet, VegMark, orderPassId } from "./canteenShared";
 
@@ -262,6 +264,17 @@ export function CanteenPage() {
   const [created, setCreated] = useState<Order | null>(null);
   const [pickup, setPickup] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+
+  // "Edit" on an agent's proposal opens this screen with its cart and pickup filled in.
+  const location = useLocation();
+  const prefill = (location.state as { prefill?: CanteenPrefill } | null)?.prefill;
+  useEffect(() => {
+    if (!prefill) return;
+    setCart(prefill.cart);
+    setPickup(prefill.pickup);
+    setCreated(null);
+    if (!window.matchMedia("(min-width: 1024px)").matches) setCartOpen(true);
+  }, [location.key]); // once per navigation, not on every render
 
   const items = menu.data?.items ?? [];
   const menuById = new Map(items.map((i) => [i.id, i]));

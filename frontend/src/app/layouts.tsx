@@ -4,6 +4,8 @@ import { DemoBanner } from "@/components/DemoBanner";
 import { LiveBadge } from "@/components/LiveBadge";
 import { Notices } from "@/components/Notices";
 import { Button } from "@/components/ui/button";
+import { AskDock } from "@/features/ask/AskDock";
+import { AskProvider } from "@/features/ask/AskContext";
 import { APP_NAME } from "@/lib/api";
 import { useLogout, useMe } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -40,66 +42,69 @@ export function Brand({ className, onDark = false }: { className?: string; onDar
   );
 }
 
-/** Student shell: floating dock on phones, ink rail from 1024 px. */
+/** Student shell: floating dock (with the ask bar above it) on phones, ink rail from 1024 px. */
 export function StudentLayout() {
   const me = useMe().data;
   return (
-    <div className="min-h-dvh">
-      <DemoBanner />
-      <Notices />
-      <div className="lg:flex">
-        <aside className="hidden text-hero-text lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:bg-hero lg:px-4 lg:py-6">
-          <Brand onDark className="px-2 text-28" />
-          <nav aria-label="Main" className="mt-10 flex flex-col gap-2">
-            {STUDENT_NAV.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/"}
-                className={({ isActive }) =>
-                  cn(
-                    "press flex min-h-12 items-center gap-3 rounded-[12px] border-2 border-transparent px-3 text-17 font-bold text-hero-muted hover:border-hero-muted hover:text-hero-text",
-                    isActive && "border-hero-text bg-hero-text text-hero shadow-[4px_4px_0_0_var(--magenta)] hover:text-hero",
-                  )
-                }
-              >
-                <item.icon className="size-5" aria-hidden />
-                {item.label}
-              </NavLink>
+    <AskProvider>
+      <div className="min-h-dvh">
+        <DemoBanner />
+        <Notices />
+        <div className="lg:flex">
+          <aside className="hidden text-hero-text lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:bg-hero lg:px-4 lg:py-6">
+            <Brand onDark className="px-2 text-28" />
+            <nav aria-label="Main" className="mt-10 flex flex-col gap-2">
+              {STUDENT_NAV.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) =>
+                    cn(
+                      "press flex min-h-12 items-center gap-3 rounded-[12px] border-2 border-transparent px-3 text-17 font-bold text-hero-muted hover:border-hero-muted hover:text-hero-text",
+                      isActive && "border-hero-text bg-hero-text text-hero shadow-[4px_4px_0_0_var(--magenta)] hover:text-hero",
+                    )
+                  }
+                >
+                  <item.icon className="size-5" aria-hidden />
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="mt-auto rounded-[14px] border-2 border-hero-muted/40 p-3">
+              <p className="truncate font-bold">{me?.name}</p>
+              <p className="text-13 text-hero-muted">{me?.kind === "student" ? me.roll_no : null}</p>
+              <LiveBadge className="mt-2" onDark />
+            </div>
+          </aside>
+          <main className="mx-auto w-full max-w-6xl min-w-0 px-4 pt-4 pb-52 sm:px-6 lg:px-10 lg:pt-8 lg:pb-12">
+            <Outlet />
+          </main>
+        </div>
+        <nav aria-label="Main" className="fixed inset-x-3 bottom-3 z-20 pb-[env(safe-area-inset-bottom)] lg:hidden">
+          <ul className="mx-auto flex max-w-lg gap-1 rounded-[20px] border-2 border-edge bg-hero p-1.5 shadow-hard">
+            {DOCK_NAV.map((item) => (
+              <li key={item.to} className="flex-1">
+                <NavLink
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[14px] text-13 font-bold text-hero-muted",
+                      isActive && "bg-hero-text text-hero",
+                    )
+                  }
+                >
+                  <item.icon className="size-5" aria-hidden />
+                  {item.label}
+                </NavLink>
+              </li>
             ))}
-          </nav>
-          <div className="mt-auto rounded-[14px] border-2 border-hero-muted/40 p-3">
-            <p className="truncate font-bold">{me?.name}</p>
-            <p className="text-13 text-hero-muted">{me?.kind === "student" ? me.roll_no : null}</p>
-            <LiveBadge className="mt-2" onDark />
-          </div>
-        </aside>
-        <main className="mx-auto w-full max-w-6xl min-w-0 px-4 pt-4 pb-32 sm:px-6 lg:px-10 lg:pt-8 lg:pb-12">
-          <Outlet />
-        </main>
+          </ul>
+        </nav>
+        <AskDock />
       </div>
-      <nav aria-label="Main" className="fixed inset-x-3 bottom-3 z-20 pb-[env(safe-area-inset-bottom)] lg:hidden">
-        <ul className="mx-auto flex max-w-lg gap-1 rounded-[20px] border-2 border-edge bg-hero p-1.5 shadow-hard">
-          {DOCK_NAV.map((item) => (
-            <li key={item.to} className="flex-1">
-              <NavLink
-                to={item.to}
-                end={item.to === "/"}
-                className={({ isActive }) =>
-                  cn(
-                    "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[14px] text-13 font-bold text-hero-muted",
-                    isActive && "bg-hero-text text-hero",
-                  )
-                }
-              >
-                <item.icon className="size-5" aria-hidden />
-                {item.label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
+    </AskProvider>
   );
 }
 

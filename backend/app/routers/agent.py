@@ -65,7 +65,7 @@ def _history(session: Session, student_id: int, conversation_id: str, limit: int
     rows = session.exec(
         select(AgentMessage)
         .where(AgentMessage.student_id == student_id, AgentMessage.conversation_id == conversation_id)
-        .order_by(col(AgentMessage.created_at).desc(), col(AgentMessage.id).desc())
+        .order_by(col(AgentMessage.id).desc())
         .limit(limit)
     ).all()
     return list(reversed(rows))
@@ -80,7 +80,7 @@ def _store(session: Session, student_id: int, conversation_id: str, message: str
         student_id=student_id, conversation_id=conversation_id, role="assistant", content=outcome.reply,
         trace_json=json.dumps({"events": events, "proposals": outcome.proposals, "agents": outcome.agents,
                                "refused": outcome.refused}, default=str, ensure_ascii=False),
-        created_at=now + timedelta(microseconds=1),
+        created_at=now,
     ))
     session.commit()
 
@@ -145,7 +145,7 @@ def history(
     if conversation_id is None:
         latest = session.exec(
             select(AgentMessage).where(AgentMessage.student_id == student.id)
-            .order_by(col(AgentMessage.created_at).desc(), col(AgentMessage.id).desc()).limit(1)
+            .order_by(col(AgentMessage.id).desc()).limit(1)
         ).first()
         conversation_id = latest.conversation_id if latest else None
     rows = _history(session, student.id, conversation_id, HISTORY_LIMIT) if conversation_id else []

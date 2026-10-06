@@ -1,4 +1,5 @@
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useLocation } from "react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, FileText, Minus, Plus, Printer, Scissors, TriangleAlert, Upload } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/states";
@@ -10,6 +11,7 @@ import { useClock } from "@/lib/clock";
 import { localInputs, money, plural } from "@/lib/format";
 import type { PrintJob, PrintQuote, PrintUpload } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { PrintPrefill } from "@/features/ask/ProposalCard";
 import { markNewPass } from "@/features/today/DayLine";
 import { PrintJobSheet, PrintPass, printPassId, when } from "./printShared";
 
@@ -178,17 +180,19 @@ function Receipt({ q, now, refreshing, error }: { q: PrintQuote; now: Date; refr
   );
 }
 
-function NewJob({ now, onCreated, inputRef }: {
+function NewJob({ now, onCreated, inputRef, prefill }: {
   now: Date;
   onCreated: (job: PrintJob) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  /** From "Edit" on an agent's proposal: the file and settings it chose. */
+  prefill?: PrintPrefill;
 }) {
   const client = useQueryClient();
-  const [file, setFile] = useState<PrintUpload | null>(null);
-  const [copies, setCopies] = useState(1);
-  const [color, setColor] = useState(false);
-  const [doubleSided, setDoubleSided] = useState(false);
-  const [deadline, setDeadline] = useState<string | null>(null); // "YYYY-MM-DDTHH:mm" college time; null = suggested
+  const [file, setFile] = useState<PrintUpload | null>(prefill?.upload ?? null);
+  const [copies, setCopies] = useState(prefill?.copies ?? 1);
+  const [color, setColor] = useState(prefill?.color ?? false);
+  const [doubleSided, setDoubleSided] = useState(prefill?.double_sided ?? false);
+  const [deadline, setDeadline] = useState<string | null>(prefill?.deadline ?? null); // "YYYY-MM-DDTHH:mm" college time; null = suggested
   const [pickError, setPickError] = useState<string | null>(null);
 
   const upload = useMutation({
@@ -365,6 +369,8 @@ function NewJob({ now, onCreated, inputRef }: {
 
 export function PrintPage() {
   const { now } = useClock();
+  const location = useLocation();
+  const prefill = (location.state as { prefill?: PrintPrefill } | null)?.prefill;
   const fileInput = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [created, setCreated] = useState<PrintJob | null>(null);
@@ -391,7 +397,7 @@ export function PrintPage() {
               {created.code} is in the queue. You'll get a notice here when it's ready.
             </p>
           ) : null}
-          {now ? <NewJob now={now} inputRef={fileInput} onCreated={(job) => setCreated(job)} /> : <Skeleton className="h-56" />}
+          {now ? <NewJob key={location.key} now={now} inputRef={fileInput} prefill={prefill} onCreated={(job) => setCreated(job)} /> : <Skeleton className="h-56" />}
         </section>
 
         <section aria-labelledby="my-jobs" className="min-w-0">

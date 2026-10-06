@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CalendarDays, Coffee, MapPin, Printer, TriangleAlert, UtensilsCrossed } from "lucide-react";
+import { ArrowRight, CalendarClock, CalendarDays, Coffee, MapPin, Printer, TriangleAlert, UtensilsCrossed } from "lucide-react";
 import { LiveBadge } from "@/components/LiveBadge";
 import { EmptyState, ErrorState } from "@/components/states";
 import { buttonVariants } from "@/components/ui/button";
@@ -10,10 +10,13 @@ import { api } from "@/lib/api";
 import { useMe } from "@/lib/auth";
 import { useClock } from "@/lib/clock";
 import { dayDate, duration, greeting, minutesBetween, percent, sameDay, timeOfDay } from "@/lib/format";
-import type { AttendanceData, DayItem, Order, PrintJob, TodayData } from "@/lib/types";
+import type { AttendanceData, DayItem, Nudge, Order, PrintJob, TodayData } from "@/lib/types";
+import { useMediaQuery } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { PrintJobSheet, PrintPass, printPassId } from "@/features/print/printShared";
 import { OrderPass, OrderSheet, orderPassId } from "@/features/canteen/canteenShared";
+import { useAsk } from "@/features/ask/AskContext";
+import { AskPanel } from "@/features/ask/AskPanel";
 import { DayLine, statusAt, type DayPass } from "./DayLine";
 
 function TodaySkeleton() {
@@ -150,6 +153,51 @@ function PassButton({ job, now, onOpen }: { job: PrintJob; now: Date; onOpen: (i
   );
 }
 
+const NUDGE_TONE: Record<Nudge["agent"], { icon: typeof Printer; className: string }> = {
+  timetable: { icon: CalendarClock, className: "bg-magenta text-white" },
+  print: { icon: Printer, className: "bg-cyan text-on-fill" },
+  canteen: { icon: UtensilsCrossed, className: "bg-yellow text-on-fill" },
+};
+
+/** At most two nudges from simple rules (lunch soon and nothing ordered...), each with one action. */
+function Nudges({ nudges }: { nudges: Nudge[] }) {
+  const ask = useAsk();
+  const desktop = useMediaQuery("(min-width: 1024px)");
+  if (!nudges.length) return null;
+  const run = (nudge: Nudge) => {
+    if (!nudge.ask) return;
+    // "... of this ..." needs a file first: put the words in the ask box and let the student attach.
+    const needsFile = /\bthis\b/i.test(nudge.ask);
+    if (needsFile) ask.setDraft(nudge.ask);
+    else ask.send(nudge.ask);
+    if (!desktop) ask.openSheet(); // laptops show the panel beside the day line
+  };
+  return (
+    <ul className="mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2" aria-label="Suggestions">
+      {nudges.map((nudge) => {
+        const tone = NUDGE_TONE[nudge.agent];
+        return (
+          <li key={nudge.id} className="flex items-center gap-3 rounded-[16px] border-2 border-edge bg-sheet p-3 shadow-hard">
+            <span className={cn("inline-flex size-10 shrink-0 -rotate-3 items-center justify-center rounded-[10px] border-2 border-edge", tone.className)}>
+              <tone.icon className="size-5" aria-hidden />
+            </span>
+            <p className="min-w-0 flex-1 font-bold">{nudge.text}</p>
+            {nudge.to ? (
+              <Link to={nudge.to} className={buttonVariants({ variant: "secondary", className: "shrink-0" })}>
+                {nudge.action}
+              </Link>
+            ) : (
+              <button type="button" onClick={() => run(nudge)} disabled={ask.busy} className={buttonVariants({ className: "shrink-0" })}>
+                {nudge.action}
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function PanelCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
     <section className={cn("rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard", className)}>
@@ -278,7 +326,7 @@ export function TodayPage() {
   const belowCount = attendance.data?.subjects.filter((s) => s.standing.status === "below").length;
 
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-10">
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-8 xl:gap-10">
       <div className="min-w-0">
         {shownNow ? <Hero name={firstName} fullName={me?.name ?? ""} now={shownNow} items={items} /> : <Skeleton className="h-64" />}
 
@@ -294,6 +342,8 @@ export function TodayPage() {
             alert={!!belowCount}
           />
         </div>
+
+        <Nudges nudges={today.data?.nudges ?? []} />
 
         <h2 className="mt-8 font-display text-28 font-extrabold">Your day</h2>
         {today.isPending || !shownNow ? (
@@ -343,7 +393,10 @@ export function TodayPage() {
       </div>
 
       {items && shownNow ? (
-        <aside className="hidden lg:block" aria-label="At a glance">
+        <aside className="hidden space-y-5 lg:block" aria-label="At a glance">
+          <section className="h-[min(680px,calc(100dvh-4rem))] rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard-magenta">
+            <AskPanel className="h-full" />
+          </section>
           <SidePanel items={items} now={shownNow} attendance={attendance.data} />
         </aside>
       ) : null}

@@ -22,6 +22,10 @@ _file_values = dict(
 for _key in ("QDRANT_URL", "QDRANT_API_KEY"):
     os.environ[f"LIVE_{_key}"] = os.environ.get(_key) or _file_values.get(_key, "").strip()
     os.environ[_key] = ""
+# Never reach Lyzr either: the agent tests use a fake Lyzr (httpx MockTransport).
+for _key in ("LYZR_API_KEY", "LYZR_TEMPLATE_AGENT_ID", "TOOL_KEY",
+             *(f"LYZR_{a}_AGENT_ID" for a in ("ORCHESTRATOR", "TIMETABLE", "PRINT", "CANTEEN", "LISTENER"))):
+    os.environ[_key] = ""
 
 from fastapi.testclient import TestClient  # noqa: E402
 

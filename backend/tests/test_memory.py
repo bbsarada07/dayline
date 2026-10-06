@@ -262,7 +262,14 @@ def test_reset_demo_clears_memories(ananya):
     ananya.post("/api/memory/notes", json={"text": "Remember that I take the 8:10 bus"})
     assert ananya.post("/api/demo/reset").status_code == 200
     demo._last_reset = None
-    assert ananya.get("/api/memory").json()["memories"] == []
+    texts_after = texts(ananya.get("/api/memory").json()["memories"])
+    # The note is gone; only the seeded demo history is back (Phase 7: her usual lunch, last print, a deadline).
+    assert "I take the 8:10 bus" not in texts_after
+    assert texts_after == [
+        "My DBMS lab record is due Thursday",
+        "Printed DBMS_lab_record.pdf: 2 copies, black and white, double sided",
+        *["Ordered Veg fried rice × 1, Masala chai × 1 for 12:40 pm pickup on a Monday"] * 3,
+    ]
 
 
 def test_memory_events_reach_only_the_owner(client):

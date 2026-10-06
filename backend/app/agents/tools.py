@@ -266,14 +266,38 @@ def _attachment(ctx: RunContext):
     return print_service.get_upload(ctx.session, ctx.student.id, ctx.run.upload_id)
 
 
-def _print_quote(ctx: RunContext, a: PrintArgs) -> tuple[print_service.Quote, str | None]:
+def _is_clock_time(spec: str) -> bool:
+    text = (spec or "").strip().lower()
+    if re.fullmatch(r"(\d{1,2})[:.](\d{2})\s*(am|pm)?", text):
+        return True
+    try:
+        datetime.fromisoformat(spec)
+        return True
+    except ValueError:
+        return False
+
+
+def _print_quote(ctx: RunContext, a: PrintArgs) -> tuple[print_service.Quote, str | None, bool]:
+    """(quote, deadline reason, whether the timetable decided the deadline)."""
     upload = _attachment(ctx)
     deadline, reason = resolve_deadline(ctx, a.deadline)
+    if deadline is not None and deadline == print_service.default_deadline(ctx.session, ctx.student).deadline:
+        deadline, reason = None, None  # the model copied the default time back: keep the timetable's reason
     try:
         q = print_service.quote(ctx.session, ctx.student, upload.id, a.copies, a.color, a.double_sided, deadline)
     except ApiError as exc:
         raise ToolError(exc.message) from exc
-    return q, reason or q.deadline_reason
+    from_timetable = deadline is None or not _is_clock_time(a.deadline)
+    return q, reason or q.deadline_reason, from_timetable
+
+
+def _consulted_timetable(ctx: RunContext, label: str) -> None:
+    """The timetable decided something for another agent (a deadline): show it as Timetable's work."""
+    if ctx.agent == "timetable":
+        return
+    if "timetable" not in ctx.run.agents_used:
+        ctx.run.agents_used.append("timetable")
+    ctx.run.send("tool_called", {"agent": "timetable", "for": ctx.agent, "tool": "timetable", "label": label, "ok": True})
 
 
 def _quote_view(q: print_service.Quote, reason: str | None) -> dict[str, Any]:
@@ -289,7 +313,7 @@ def _quote_view(q: print_service.Quote, reason: str | None) -> dict[str, Any]:
 @tool("quote_print_job", "print", "Price and timing for printing the attached PDF. Creates nothing.",
       PrintArgs, lambda a: "Pricing the attached file")
 def quote_print_job(ctx: RunContext, a: PrintArgs) -> dict[str, Any]:
-    q, reason = _print_quote(ctx, a)
+    q, reason, _ = _print_quote(ctx, a)
     return _quote_view(q, reason)
 
 
@@ -297,7 +321,9 @@ def quote_print_job(ctx: RunContext, a: PrintArgs) -> dict[str, Any]:
       "Prepare a print job for the attached PDF as a proposal the student confirms and pays for. Spends nothing.",
       PrintArgs, lambda a: "Preparing a print job for you to confirm")
 def propose_print_job(ctx: RunContext, a: PrintArgs) -> dict[str, Any]:
-    q, reason = _print_quote(ctx, a)
+    q, reason, from_timetable = _print_quote(ctx, a)
+    if from_timetable:
+        _consulted_timetable(ctx, f"Set the deadline: {reason}" if reason else "Set the deadline from your timetable")
     view = _quote_view(q, reason)
     proposal = {
         "id": secrets.token_hex(6), "type": "print", "agent": "print",
@@ -308,7 +334,7 @@ def propose_print_job(ctx: RunContext, a: PrintArgs) -> dict[str, Any]:
                  "deadline": None if q.deadline_is_default else q.deadline.isoformat()},
     }
     ctx.run.proposals.append(proposal)
-    ctx.run.send("proposal", proposal)
+    ctx.run.send("proposal", {"proposal": proposal})
     return {"proposal_ready": True, **view}
 
 
@@ -401,7 +427,7 @@ def propose_order(ctx: RunContext, a: OrderArgs) -> dict[str, Any]:
                  "pickup_time": q.pickup_time.isoformat(), "expected_total": q.total},
     }
     ctx.run.proposals.append(proposal)
-    ctx.run.send("proposal", proposal)
+    ctx.run.send("proposal", {"proposal": proposal})
     return {"proposal_ready": True, "items": [f"{l.name} × {l.qty}" for l in q.lines],
             "total": _money(q.total), "pickup": _t(q.pickup_time), "pickup_reason": q.pickup_reason}
 
@@ -488,7 +514,7 @@ def list_standing_instructions(ctx: RunContext, a: NoArgs) -> dict[str, Any]:
 ACCESS: dict[str, list[str]] = {
     "timetable": ["get_today_schedule", "get_next_class", "get_free_slots", "get_attendance_summary",
                   "attendance_what_if", "recall", "remember"],
-    "print": ["quote_print_job", "propose_print_job", "get_print_status", "cancel_print_job",
+    "print": ["propose_print_job", "get_print_status", "cancel_print_job",
               "print_settings_from_last_time", "get_next_class", "get_today_schedule", "recall", "remember"],
     "canteen": ["get_menu", "propose_order", "usual_order", "get_order_status", "cancel_order",
                 "get_free_slots", "get_next_class", "recall", "remember", "list_standing_instructions"],

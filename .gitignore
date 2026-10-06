@@ -9,12 +9,15 @@ backend/.env
 .env.*
 !.env.example
 backend/*.db
+*.db
+*.sqlite
 backend/*.db-shm
 backend/*.db-wal
 backend/uploads/*
 !backend/uploads/.gitkeep
 
-# Node
+# Node (anywhere, not just frontend/)
+node_modules/
 frontend/node_modules/
 frontend/dist/
 *.tsbuildinfo

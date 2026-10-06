@@ -97,13 +97,15 @@ def _call(name: str, **args: Any) -> dict[str, Any]:
 
 def _orchestrator(env: dict[str, Any]) -> dict[str, Any]:
     if env.get("task") == "summarize":
-        return {"reply": " ".join(a["answer"] for a in env.get("answers", []) if a.get("answer"))}
+        parts = [a["answer"].removesuffix(" Confirm below.") for a in env.get("answers", []) if a.get("answer")]
+        confirm = any(a.get("answer", "").endswith("Confirm below.") for a in env.get("answers", []))
+        return {"reply": " ".join(parts) + (" Confirm below." if confirm else "")}
     message = env.get("message", "")
     remember = route(message)
     if remember:
         fact = remember.slots["fact"]
         return {"action": "remember", "remember": fact, "kind": remember.slots["kind"],
-                "reply": f"Got it. I'll remember: {fact}"}
+                "reply": f"Got it. I'll remember: {fact.rstrip('.')}."}
     has_file = bool(env.get("attachment"))
     wants_print = bool(_PRINT.search(message)) or (has_file and re.search(r"\bthis\b", message, re.I))
     wants_food = bool(_CANTEEN.search(message)) or any(n.lower() in message.lower() for n in env.get("context", {}).get("menu", []))
@@ -226,9 +228,9 @@ def _print(env: dict[str, Any]) -> dict[str, Any]:
         return {"tool_calls": [_call("propose_print_job", copies=copies, color=color, double_sided=double,
                                      deadline=_print_deadline(env, message))]}
     q = _result(env, "propose_print_job")
-    answer = (f"{q['file']}: {q['pages']} pages × {q['copies']}, {q['colour']}, {q['sides']}, {q['cost']}. "
-              f"Needed by {q['deadline']} {q['deadline_day'].split(' (')[0]}; ready about {q['estimated_ready']}.")
-    return {"answer": answer + (f" {q['warning']}" if q.get("warning") else "")}
+    copies = f"{q['copies']} cop{'y' if q['copies'] == 1 else 'ies'}"
+    answer = f"{q['file']}, {copies}, {q['cost']}, needed by {q['deadline']} {q['deadline_day'].split(' (')[0]}."
+    return {"answer": answer + (f" {q['warning']}" if q.get("warning") else "") + " Confirm below."}
 
 
 def _print_deadline(env: dict[str, Any], message: str) -> str:
@@ -237,9 +239,9 @@ def _print_deadline(env: dict[str, Any], message: str) -> str:
         return explicit
     if day := _day(message):
         return day
-    if re.search(r"next lab|before (?:my |the )?lab", message, re.I):
+    if re.search(r"\bnext lab\b|before (?:my |the )?lab\b", message, re.I):
         return "next_lab"
-    if re.search(r"next class|before (?:my |the )?class", message, re.I):
+    if re.search(r"\bnext class\b|before (?:my |the )?class\b", message, re.I):
         return "next_class"
     doc = _doc_words(env).lower().split()
     for memory in ((_result(env, "recall") or {}).get("memories") or []):
@@ -289,5 +291,5 @@ def _canteen(env: dict[str, Any]) -> dict[str, Any]:
         some = ", ".join(menu[:4])
         return {"answer": f"What would you like? Today there's {some} and more on the Canteen screen."}
     q = _result(env, "propose_order")
-    reason = f" ({q['pickup_reason'].rstrip('.')})" if q.get("pickup_reason") else ""
-    return {"answer": f"{', '.join(q['items'])} for pickup at {q['pickup']}{reason}, {q['total']}. Confirm to pay."}
+    usual = "Your usual: " if (_result(env, "usual_order") or {}).get("items") else ""
+    return {"answer": f"{usual}{', '.join(q['items'])}, pickup {q['pickup']}, {q['total']}. Confirm below."}

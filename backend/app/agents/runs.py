@@ -34,7 +34,7 @@ class Run:
 
     def send(self, type_: str, payload: dict[str, Any]) -> None:
         """Record a trace event (saved with the message) and stream it to the browser."""
-        event = {"type": type_, **payload}
+        event = {**payload, "type": type_}
         self.events.append(event)
         self.emit(type_, payload)
 
