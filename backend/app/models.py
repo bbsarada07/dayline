@@ -21,6 +21,8 @@ class Student(SQLModel, table=True):
     pin_hash: str
     card_uid: Optional[str] = Field(default=None, unique=True, index=True)
     interests: Optional[str] = None
+    # The student's Omi user id (Phase 8): Omi webhooks carry it as ?uid=.
+    omi_uid: Optional[str] = Field(default=None, unique=True, index=True)
 
 
 class Staff(SQLModel, table=True):
@@ -163,6 +165,32 @@ class AgentMessage(SQLModel, table=True):
     role: str
     content: str
     trace_json: Optional[str] = None
+    created_at: datetime
+
+
+class OmiLog(SQLModel, table=True):
+    """One Omi webhook call, for debugging. Never holds transcript text."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    student_id: Optional[int] = Field(default=None, foreign_key="student.id", index=True)
+    kind: str  # transcript | memory | reply
+    source: str  # omi | simulator
+    uid_tail: Optional[str] = None  # last 4 characters of the uid, enough to tell ids apart
+    segments: int = 0
+    words: int = 0
+    outcome: str  # ignored | buffered | listening | request | duplicate | rate_limited | stored | skipped | replied ...
+    detail: Optional[str] = None  # plain explanation, no transcript text
+    ms: int = 0
+    created_at: datetime
+
+
+class OmiProcessed(SQLModel, table=True):
+    """Requests and conversations already handled, so a retried webhook is never handled twice."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    student_id: int = Field(foreign_key="student.id", index=True)
+    key: str = Field(unique=True, index=True)  # req:<fingerprint> | conv:<omi conversation id>
+    text_hash: Optional[str] = Field(default=None, index=True)  # same request again within a minute
     created_at: datetime
 
 

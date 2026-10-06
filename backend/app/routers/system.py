@@ -8,7 +8,7 @@ from sqlmodel import Session, func, select
 from app import clock, demo
 from app.config import APP_NAME, settings
 from app.db import get_session
-from app.models import Student
+from app.models import OmiLog, Student
 from app.agents import llm
 from app.services import memory_service
 
@@ -33,6 +33,14 @@ def _qdrant_health() -> dict:
         "store": memory["backend"],
         "collection": memory["collection"],
     }
+
+
+def _omi_health(session: Session) -> dict:
+    """Notifications set up, how many students connected Omi, and when a webhook last arrived (no call to Omi)."""
+    connected = session.exec(select(func.count(Student.id)).where(Student.omi_uid.is_not(None))).one()
+    last = session.exec(select(func.max(OmiLog.created_at)).where(OmiLog.source == "omi")).one()
+    return {"configured": _set("OMI_APP_ID", "OMI_APP_SECRET"), "students_connected": connected,
+            "last_webhook_from_omi": last, "simulator": settings.demo_mode, "connection_checked": False}
 
 
 @router.get("/health")
@@ -65,7 +73,7 @@ def health(session: Session = Depends(get_session)) -> dict:
             "daily_call_limit": llm.budget.limit,
             "connection_checked": False,
         },
-        "omi": {"configured": _set("OMI_APP_ID", "OMI_APP_SECRET"), "connection_checked": False},
+        "omi": _omi_health(session),
     }
 
 

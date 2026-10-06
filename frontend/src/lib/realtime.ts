@@ -57,6 +57,17 @@ function invalidate(client: QueryClient, event: RealtimeEvent) {
       // so refetching the search here would loop.
       client.invalidateQueries({ queryKey: ["memory", "list"] });
       break;
+    case "omi.activity":
+      client.invalidateQueries({ queryKey: ["omi"] });
+      break;
+    case "omi.memories":
+      // Omi facts can add a nudge ("Lab record due Thursday. Print it now?").
+      client.invalidateQueries({ queryKey: ["memory", "list"] });
+      client.invalidateQueries({ queryKey: ["today"] });
+      break;
+    case "agent.reply":
+      client.invalidateQueries({ queryKey: ["today"] });
+      break;
     case "demo.reset":
       // Someone pressed "Reset demo": all data was re-seeded, so refetch everything.
       client.invalidateQueries();

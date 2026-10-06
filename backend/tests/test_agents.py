@@ -162,7 +162,7 @@ def test_print_like_last_time_reuses_settings_and_remembered_due_day(ananya):
     events, final = ask(ananya, "Print this like last time", upload_id=sample(ananya))
     (proposal,) = final["proposals"]
     assert (proposal["copies"], proposal["double_sided"], proposal["color"]) == (2, True, False)
-    # "My DBMS lab record is due Thursday" -> 10 minutes before Thursday's first class.
+    # Omi's "DBMS lab record is due Thursday" -> 10 minutes before Thursday's first class.
     assert datetime.fromisoformat(proposal["deadline"]).date().isoformat() == "2026-10-08"
     assert ("print", "print_settings_from_last_time") in tools_used(events)
 
@@ -415,8 +415,10 @@ def test_numbers_check():
 
 def test_today_has_at_most_two_rule_based_nudges(ananya):
     nudges = ananya.get("/api/today").json()["nudges"]
-    assert 1 <= len(nudges) <= 2
-    assert nudges[0]["id"].startswith("lunch-") and nudges[0]["ask"]  # lunch 12:40, nothing ordered
+    assert len(nudges) == 2
+    # Omi heard the lab record is due Thursday (seeded), and lunch is at 12:40 with nothing ordered.
+    assert nudges[0]["id"].startswith("omi-") and nudges[0]["ask"] == "Print this before Thursday"
+    assert nudges[1]["id"].startswith("lunch-") and nudges[1]["ask"]
     _, final = ask(ananya, "Get me lunch")
     ananya.post("/api/canteen/orders", json=final["proposals"][0]["body"])
     assert not any(n["id"].startswith("lunch-") for n in ananya.get("/api/today").json()["nudges"])

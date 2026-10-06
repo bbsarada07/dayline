@@ -27,6 +27,11 @@ function Bubble({ message, now, onLeave }: { message: ChatMessage; now: Date | n
   if (message.role === "user") {
     return (
       <li className="ml-auto max-w-[85%] rounded-[16px] rounded-br-[4px] border-2 border-edge bg-ink px-3.5 py-2.5 text-paper shadow-hard-sm">
+        {message.via === "omi" ? (
+          <p className="mb-1 flex items-center gap-1 text-[12px] font-extrabold tracking-wide uppercase opacity-80">
+            <Mic className="size-3.5" aria-hidden /> Said to Omi
+          </p>
+        ) : null}
         <p className="font-semibold break-words">{message.text}</p>
         {message.attachment ? (
           <p className="mt-1 flex items-center gap-1 text-13 font-bold opacity-80">

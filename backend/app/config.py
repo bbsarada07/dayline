@@ -66,6 +66,11 @@ class Settings:
     lyzr_daily_call_limit: int
     # Shared secret for /api/agent-tools/* (sent with a per-run token).
     tool_key: str
+    # Omi (addendum I, Phase 8): the private Omi app that sends notifications, and the wake phrase.
+    omi_app_id: str
+    omi_app_secret: str
+    omi_api_base: str
+    omi_wake_phrases: list[str]
 
     @property
     def https(self) -> bool:
@@ -131,6 +136,10 @@ def load_settings() -> Settings:
         lyzr_timeout_seconds=float(os.environ.get("LYZR_TIMEOUT_SECONDS", "20")),
         lyzr_daily_call_limit=int(os.environ.get("LYZR_DAILY_CALL_LIMIT", "100")),
         tool_key=os.environ.get("TOOL_KEY", "").strip(),
+        omi_app_id=os.environ.get("OMI_APP_ID", "").strip(),
+        omi_app_secret=os.environ.get("OMI_APP_SECRET", "").strip(),
+        omi_api_base=os.environ.get("OMI_API_BASE", "").strip().rstrip("/") or "https://api.omi.me",
+        omi_wake_phrases=[p.strip() for p in os.environ.get("OMI_WAKE_PHRASES", "hey dayline").split(",") if p.strip()],
     )
 
 

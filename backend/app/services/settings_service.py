@@ -39,6 +39,8 @@ DEFAULTS: dict[str, Any] = {
     ],
     # Shown in the login "Demo accounts" drawer only while demo_mode is on.
     "demo_pin": None,
+    # What wakes Dayline in an Omi transcript (OMI_WAKE_PHRASES). Common mis-hearings are added in omi_service.
+    "omi_wake_phrases": settings.omi_wake_phrases,
 }
 
 _lock = threading.Lock()

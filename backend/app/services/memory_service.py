@@ -245,8 +245,10 @@ def recall(student_id: int, query: str, limit: int = 5, *, mark: str = "all") ->
     return [_view(r) for r in rows]
 
 
-def list_memories(student_id: int, limit: int = LIST_LIMIT) -> list[Memory]:
-    """This student's memories, newest first."""
+def list_memories(student_id: int, limit: int = LIST_LIMIT, *, written_by: str | None = None) -> list[Memory]:
+    """This student's memories, newest first (optionally only those one writer wrote)."""
+    if written_by:
+        return [_view(r) for r in _run(lambda b: b.scroll(student_id, limit, written_by=written_by))]
     return [_view(r) for r in _run(lambda b: b.scroll(student_id, limit))]
 
 

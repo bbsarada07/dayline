@@ -49,7 +49,7 @@ export type TodayData = {
 /** A rule-based suggestion on Today: open a screen (to) or ask Dayline (ask). */
 export type Nudge = {
   id: string;
-  agent: "timetable" | "print" | "canteen";
+  agent: "timetable" | "print" | "canteen" | "omi";
   text: string;
   action: string;
   to: string | null;
@@ -298,3 +298,47 @@ export type AgentHistory = {
     trace: { events?: TraceEvent[]; proposals?: Proposal[]; agents?: AgentName[]; refused?: boolean; upload_id?: string } | null;
   }[];
 };
+
+// --- Omi (Phase 8) ----------------------------------------------------------------------
+
+export type OmiStatus = {
+  connected: boolean;
+  omi_uid: string | null;
+  demo_uid: string | null;
+  is_demo_uid: boolean;
+  urls: { transcript: string; memory: string };
+  paths: { transcript: string; memory: string };
+  notifications_configured: boolean;
+  wake_phrases: string[];
+  last_webhook_at: string | null;
+  simulator: boolean;
+};
+
+export type OmiActivityEntry = {
+  id: number;
+  kind: "transcript" | "memory" | "reply";
+  source: "omi" | "simulator";
+  outcome: string;
+  detail: string | null;
+  segments: number;
+  words: number;
+  ms: number;
+  created_at: string;
+};
+
+/** Realtime "agent.reply": Dayline answered something said to Omi. */
+export type AgentReply = {
+  source: "omi";
+  conversation_id: string;
+  message: string;
+  reply: string;
+  spoken: string;
+  proposals: Proposal[];
+  agents: AgentName[];
+  events: TraceEvent[];
+  refused: boolean;
+  notification: { sent: boolean; detail: string };
+};
+
+/** Realtime "omi.memories": what the Listener kept from a finished Omi conversation. */
+export type OmiMemories = { conversation: string; items: string[]; by: "lyzr" | "mock" };

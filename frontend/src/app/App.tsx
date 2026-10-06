@@ -19,6 +19,7 @@ import { StaffHomePage } from "@/features/staff/StaffHomePage";
 import { PrintPage } from "@/features/print/PrintPage";
 import { CanteenPage } from "@/features/canteen/CanteenPage";
 import { MemoryPage } from "@/features/memory/MemoryPage";
+import { OmiSimulatorPage } from "@/features/omi/OmiSimulatorPage";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -103,6 +104,7 @@ export function App() {
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="memory" element={<MemoryPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="omi-simulator" element={<OmiSimulatorPage />} />
           </Route>
           <Route
             element={

@@ -22,7 +22,7 @@ from app.db import engine
 from app.models import (
     Attendance, MenuItem, Order, OrderItem, Room, Setting, Staff, Student, Subject, TimetableSlot,
 )
-from app.services import settings_service
+from app.services import omi_client, settings_service
 
 DEMO_PIN = "1234"
 SECTION = "CSE-3A"
@@ -234,8 +234,12 @@ def _demo_memories(start: datetime, menu_ids: dict[str, int]) -> None:
             student_id, "Printed DBMS_lab_record.pdf: 2 copies, black and white, double sided", kind="action",
             written_by="print", data={"copies": 2, "color": False, "double_sided": True, "pages": 4},
             at=start - timedelta(days=4, hours=2))
-        memory_service.remember(student_id, "My DBMS lab record is due Thursday", kind="fact", written_by="student",
-                                at=start - timedelta(days=2, hours=5))
+        # As if Omi heard it in a conversation (addendum G: the print agent uses an Omi fact for a deadline).
+        thursday = start.date() + timedelta(days=(3 - start.weekday()) % 7)
+        memory_service.remember(
+            student_id, "DBMS lab record is due Thursday", kind="fact", written_by="omi", source_ref="omi:demo",
+            data={"category": "deadline", "due": thursday.isoformat(), "nudge": True, "conversation": "demo"},
+            at=start - timedelta(days=2, hours=5))
     except Exception as exc:  # memory being down mustn't stop a reset
         print(f"Couldn't write the demo memories: {exc!r}")
 
@@ -260,7 +264,9 @@ def seed(demo: bool | None = None) -> None:
     with Session(engine) as session:
         students = [
             Student(roll_no=roll, name=name, branch="CSE", year=3, section=SECTION,
-                    pin_hash=pin_hash, card_uid=roll)
+                    pin_hash=pin_hash, card_uid=roll,
+                    # Demo: a pretend Omi id per student, so the Omi simulator works without a device.
+                    omi_uid=f"{omi_client.DEMO_UID_PREFIX}{roll}" if demo else None)
             for roll, name in STUDENTS
         ]
         staff = [Staff(username=u, name=n, role=r, pin_hash=pin_hash) for u, n, r in STAFF]

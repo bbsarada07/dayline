@@ -1,9 +1,10 @@
 """Admin controls: demo time and (so far) print settings. The full settings editor is Phase 6."""
 
 from datetime import datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 from app import clock
 from app.auth import require_roles
@@ -35,6 +36,8 @@ class SettingsIn(BaseModel):
 
     print_rates: PrintRates | None = None
     print_seconds_per_page: int | None = Field(default=None, ge=1, le=120)
+    omi_wake_phrases: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=40)]] | None = (
+        Field(default=None, min_length=1, max_length=10, description='e.g. ["hey dayline"]'))
 
 
 @router.get("/settings")

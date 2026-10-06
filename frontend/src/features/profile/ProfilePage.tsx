@@ -1,6 +1,7 @@
 import { Brain, ChevronRight, CreditCard, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { Link } from "react-router";
 import { Brand } from "@/app/layouts";
+import { OmiConnect } from "@/features/omi/OmiConnect";
 import { Barcode } from "@/components/Barcode";
 import { Button } from "@/components/ui/button";
 import { useLogout, useMe } from "@/lib/auth";
@@ -76,6 +77,8 @@ export function ProfilePage() {
         </span>
         <ChevronRight className="size-5 shrink-0" aria-hidden />
       </Link>
+
+      <OmiConnect />
 
       <section className="rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard">
         <h2 id="theme-label" className="font-display text-21 font-extrabold">

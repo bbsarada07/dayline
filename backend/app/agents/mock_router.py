@@ -49,7 +49,9 @@ def route(text: str) -> Intent | None:
 
 def respond(agent: str, env: dict[str, Any]) -> dict[str, Any]:
     """Answer one agent call, in that agent's JSON format."""
-    return {"orchestrator": _orchestrator, "timetable": _timetable, "print": _print, "canteen": _canteen}[agent](env)
+    agents = {"orchestrator": _orchestrator, "timetable": _timetable, "print": _print, "canteen": _canteen,
+              "listener": _listener}
+    return agents[agent](env)
 
 
 # --- helpers -------------------------------------------------------------------------------
@@ -293,3 +295,73 @@ def _canteen(env: dict[str, Any]) -> dict[str, Any]:
     q = _result(env, "propose_order")
     usual = "Your usual: " if (_result(env, "usual_order") or {}).get("items") else ""
     return {"answer": f"{usual}{', '.join(q['items'])}, pickup {q['pickup']}, {q['total']}. Confirm below."}
+
+
+# --- listener (Omi conversations) -----------------------------------------------------------------
+
+_THING = re.compile(
+    r"\b(lab record|record|assignment|report|project|homework|essay|presentation|notes|viva|exam|quiz|test|"
+    r"lab manual|seminar)\b", re.I)
+_DUE_WORDS = re.compile(r"\b(due|deadline|submit|submission|hand(?:ed)? in|is on|on)\b", re.I)
+_PRINT_WORDS = re.compile(r"\b(print|printed|printout|print-out|copies|hard copy)\b", re.I)
+_FOOD = re.compile(
+    r"\bI\s+(?:really\s+)?(love|like|prefer|hate|don't like|do not like|can't eat|cannot eat|don't eat|"
+    r"am allergic to)\s+([^.,!?;]{2,40})", re.I)
+_CHANGE = re.compile(r"\b(class|lecture|lab|period)\b.*\b(cancel+ed|moved|shifted|rescheduled|postponed)\b", re.I)
+_PROMISE = re.compile(r"\b(?:I'll|I will|I have to|I need to|I must|remind me to)\s+([^.!?;]{3,80})", re.I)
+
+
+def _sentences(env: dict[str, Any]) -> list[str]:
+    lines = [re.sub(r"^[^:]{1,30}:\s*", "", line) for line in env.get("transcript", "").splitlines()]
+    text = " ".join([*lines, *env.get("action_items", [])])
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+
+
+def _thing(window: str, subjects: list[str]) -> str | None:
+    match = _THING.search(window)
+    if not match:
+        return None
+    thing = match[1].lower()
+    subject = _subject(window, subjects)
+    if subject:
+        subject = re.sub(r"\s+lab$", "", subject, flags=re.I)  # "DBMS lab" + "lab record" -> "DBMS lab record"
+    return f"{subject} {thing}" if subject and subject.lower() not in thing else thing.capitalize()
+
+
+_LIKES = {"love": "Loves", "like": "Likes", "prefer": "Prefers", "hate": "Hates", "don't like": "Doesn't like",
+          "do not like": "Doesn't like", "can't eat": "Can't eat", "cannot eat": "Can't eat",
+          "don't eat": "Doesn't eat", "am allergic to": "Is allergic to"}
+
+
+def _listener(env: dict[str, Any]) -> dict[str, Any]:
+    """Pick deadlines, printing, food likes, class changes and promises out of a conversation."""
+    subjects = env.get("subjects", [])
+    sentences = _sentences(env)
+    items: list[dict[str, Any]] = []
+
+    def add(text: str, category: str, kind: str = "fact", due: str | None = None) -> None:
+        if text.lower() not in {i["text"].lower() for i in items}:
+            items.append({"text": text, "kind": kind, "category": category, "due": due})
+
+    for task in env.get("action_items", []):  # Omi's own action items are commitments already
+        add(task.strip().rstrip(".")[:120], "commitment", due=_day(task))
+    for i, sentence in enumerate(sentences):
+        window = " ".join(sentences[max(0, i - 2): i + 1])  # "Finished the DBMS record? No. It's due Thursday."
+        day = _day(sentence)
+        thing = _thing(sentence, subjects) or _thing(window, subjects)
+        if day and thing and _DUE_WORDS.search(sentence):
+            exam = re.search(r"\b(viva|exam|quiz|test|seminar)\b", thing, re.I)
+            add(f"{thing} is {'on' if exam else 'due'} {day.capitalize()}", "deadline", due=day)
+        if thing and _PRINT_WORDS.search(sentence):
+            when = day or _day(window)
+            name = thing if thing[:2].isupper() else thing[0].lower() + thing[1:]  # keep "DBMS", lower "Lab"
+            add(f"Print the {name}" + (f" before {when.capitalize()}" if when else ""),
+                "print", due=when)
+        if food := _FOOD.search(sentence):
+            add(f"{_LIKES.get(food[1].lower(), food[1].capitalize())} {food[2].strip()}", "food", kind="preference")
+        if _CHANGE.search(sentence):
+            change = re.sub(r"^(also|and|but|so|oh|btw)[,\s]+", "", sentence.rstrip(".!?"), flags=re.I)
+            add(change[0].upper() + change[1:120], "timetable", due=day)
+        if promise := _PROMISE.search(sentence):
+            add(f"Need to {promise[1].strip()}", "commitment", due=day)
+    return {"items": items[:5]}

@@ -46,7 +46,7 @@ def reset_demo() -> datetime:
     """
     global _last_reset
     from app.seed import seed  # imported here: seed imports most of the app
-    from app.services import collect_service
+    from app.services import collect_service, omi_service
 
     if not settings.demo_mode:
         raise ApiError(403, "demo_off", "Resetting is only available in demo mode.")
@@ -56,6 +56,7 @@ def reset_demo() -> datetime:
             raise ApiError(429, "reset_too_soon", "The demo was reset a moment ago. Wait a few seconds and try again.")
         seed(demo=True)
         collect_service._recent.clear()
+        omi_service.reset()  # requests half-heard before the reset
         _last_reset = now
     hub.publish("demo.reset", {"now": clock.local_now().isoformat()})
     return clock.local_now()

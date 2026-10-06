@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/lib/api";
-import type { AgentHistory, AgentName, PrintUpload, Proposal, TraceEvent } from "@/lib/types";
+import { subscribe } from "@/lib/realtime";
+import type { AgentHistory, AgentName, AgentReply, PrintUpload, Proposal, TraceEvent } from "@/lib/types";
 import { speak, stopSpeaking } from "./voice";
 import { streamChat } from "./stream";
 
@@ -15,6 +16,8 @@ export type ChatMessage = {
   agents: AgentName[];
   status: "streaming" | "done" | "error";
   refused?: boolean;
+  /** Said to the Omi wearable rather than typed here. */
+  via?: "omi";
 };
 
 type AskState = {
@@ -98,6 +101,24 @@ export function AskProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => () => abort.current?.abort(), []);
+
+  // Something said to Omi was answered: show it here too, so its proposal cards can be confirmed.
+  useEffect(
+    () =>
+      subscribe((event) => {
+        if (event.type !== "agent.reply") return;
+        const reply = event.payload as unknown as AgentReply;
+        setMessages((current) => [
+          ...current,
+          { id: newId(), role: "user", text: reply.message, events: [], proposals: [], agents: [], status: "done", via: "omi" },
+          {
+            id: newId(), role: "assistant", text: reply.reply, events: reply.events, proposals: reply.proposals,
+            agents: reply.agents, refused: reply.refused, status: "done", via: "omi",
+          },
+        ]);
+      }),
+    [],
+  );
 
   const update = useCallback((id: string, change: (m: ChatMessage) => ChatMessage) => {
     setMessages((current) => current.map((m) => (m.id === id ? change(m) : m)));

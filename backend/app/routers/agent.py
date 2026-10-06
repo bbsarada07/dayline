@@ -23,12 +23,11 @@ from sqlmodel import Session, col, select
 from app import clock
 from app.auth import require_student
 from app.config import settings
-from app.db import engine, get_session
+from app.db import get_session
 from app.errors import ApiError
 from app.models import AgentMessage, Student
 from app.services import print_service
-from app.agents import llm, runs
-from app.agents.orchestrator import Engine, Outcome
+from app.agents import conversations, llm
 
 log = logging.getLogger("dayline.agents")
 
@@ -61,30 +60,6 @@ def _rate_limit(student_id: int) -> None:
         recent.append(now)
 
 
-def _history(session: Session, student_id: int, conversation_id: str, limit: int) -> list[AgentMessage]:
-    rows = session.exec(
-        select(AgentMessage)
-        .where(AgentMessage.student_id == student_id, AgentMessage.conversation_id == conversation_id)
-        .order_by(col(AgentMessage.id).desc())
-        .limit(limit)
-    ).all()
-    return list(reversed(rows))
-
-
-def _store(session: Session, student_id: int, conversation_id: str, message: str, upload_id: str | None,
-           outcome: Outcome, events: list[dict]) -> None:
-    now = clock.local_now()
-    session.add(AgentMessage(student_id=student_id, conversation_id=conversation_id, role="user", content=message,
-                             trace_json=json.dumps({"upload_id": upload_id}) if upload_id else None, created_at=now))
-    session.add(AgentMessage(
-        student_id=student_id, conversation_id=conversation_id, role="assistant", content=outcome.reply,
-        trace_json=json.dumps({"events": events, "proposals": outcome.proposals, "agents": outcome.agents,
-                               "refused": outcome.refused}, default=str, ensure_ascii=False),
-        created_at=now,
-    ))
-    session.commit()
-
-
 def _sse(type_: str, payload: dict) -> str:
     return f"event: {type_}\ndata: {json.dumps(payload, default=str, ensure_ascii=False)}\n\n"
 
@@ -101,7 +76,6 @@ async def chat(body: ChatIn, student: Student = Depends(require_student),
     if body.upload_id:
         print_service.get_upload(session, student.id, body.upload_id)  # 404 unless it's this student's file
     conversation_id = body.conversation_id or uuid.uuid4().hex
-    history = [{"role": m.role, "content": m.content} for m in _history(session, student.id, conversation_id, 10)]
 
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue = asyncio.Queue()
@@ -111,18 +85,13 @@ async def chat(body: ChatIn, student: Student = Depends(require_student),
         loop.call_soon_threadsafe(queue.put_nowait, (type_, payload))
 
     def work() -> None:
-        run = runs.start(student_id, conversation_id, body.upload_id, emit)
         try:
-            emit("run", {"conversation_id": conversation_id, "mode": llm.mode()})
-            with Session(engine) as db:
-                me = db.get(Student, student_id)
-                outcome = Engine().handle(db, me, run, message, history, body.voice)
-                _store(db, student_id, conversation_id, message, body.upload_id, outcome, run.events)
+            conversations.run_message(student_id, conversation_id, message, emit,
+                                      upload_id=body.upload_id, voice=body.voice)
         except Exception:
             log.exception("Agent run failed")
             emit("error", {"message": "Something went wrong on our side. Try again, or use the screens directly."})
         finally:
-            runs.finish(run)
             loop.call_soon_threadsafe(queue.put_nowait, None)
 
     threading.Thread(target=work, name="agent-run", daemon=True).start()
@@ -148,7 +117,7 @@ def history(
             .order_by(col(AgentMessage.id).desc()).limit(1)
         ).first()
         conversation_id = latest.conversation_id if latest else None
-    rows = _history(session, student.id, conversation_id, HISTORY_LIMIT) if conversation_id else []
+    rows = conversations.history(session, student.id, conversation_id, HISTORY_LIMIT) if conversation_id else []
     return {
         "conversation_id": conversation_id,
         "mode": llm.mode(),

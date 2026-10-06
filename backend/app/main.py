@@ -16,9 +16,11 @@ from app.errors import ApiError, install_error_handlers
 from app.demo import ensure_demo_clock
 from app.events import hub
 from app.models import Student
-from app.routers import admin, agent, agent_tools, attendance, auth, canteen, collect, memory, system, timetable, today
+from app.routers import (
+    admin, agent, agent_tools, attendance, auth, canteen, collect, memory, omi, system, timetable, today,
+)
 from app.routers import print as print_router
-from app.services import maintenance, memory_service
+from app.services import maintenance, memory_service, omi_service
 
 
 def lan_addresses() -> list[str]:
@@ -57,8 +59,10 @@ async def lifespan(_app: FastAPI):
     for address in lan_addresses():
         print(f"[{APP_NAME}] On the same Wi-Fi/hotspot, open http://{address}:{settings.port}")
     housekeeping = asyncio.create_task(maintenance.loop())
+    omi_pauses = asyncio.create_task(omi_service.pause_loop())  # ends spoken requests at the pause
     yield
     housekeeping.cancel()
+    omi_pauses.cancel()
 
 
 app = FastAPI(title=APP_NAME, lifespan=lifespan)
@@ -74,7 +78,7 @@ if settings.cors_origins:
     )
 
 for module in (auth, timetable, attendance, today, admin, print_router, canteen, collect, system, memory, agent,
-               agent_tools):
+               agent_tools, omi):
     app.include_router(module.router, prefix="/api")
 
 

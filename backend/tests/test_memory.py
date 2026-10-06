@@ -266,7 +266,7 @@ def test_reset_demo_clears_memories(ananya):
     # The note is gone; only the seeded demo history is back (Phase 7: her usual lunch, last print, a deadline).
     assert "I take the 8:10 bus" not in texts_after
     assert texts_after == [
-        "My DBMS lab record is due Thursday",
+        "DBMS lab record is due Thursday",
         "Printed DBMS_lab_record.pdf: 2 copies, black and white, double sided",
         *["Ordered Veg fried rice × 1, Masala chai × 1 for 12:40 pm pickup on a Monday"] * 3,
     ]

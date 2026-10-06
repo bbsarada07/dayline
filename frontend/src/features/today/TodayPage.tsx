@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CalendarClock, CalendarDays, Coffee, MapPin, Printer, TriangleAlert, UtensilsCrossed } from "lucide-react";
+import { ArrowRight, CalendarClock, CalendarDays, Coffee, MapPin, Mic, Printer, TriangleAlert, UtensilsCrossed } from "lucide-react";
 import { LiveBadge } from "@/components/LiveBadge";
 import { EmptyState, ErrorState } from "@/components/states";
 import { buttonVariants } from "@/components/ui/button";
@@ -157,6 +157,7 @@ const NUDGE_TONE: Record<Nudge["agent"], { icon: typeof Printer; className: stri
   timetable: { icon: CalendarClock, className: "bg-magenta text-white" },
   print: { icon: Printer, className: "bg-cyan text-on-fill" },
   canteen: { icon: UtensilsCrossed, className: "bg-yellow text-on-fill" },
+  omi: { icon: Mic, className: "bg-hero text-hero-text" },
 };
 
 /** At most two nudges from simple rules (lunch soon and nothing ordered...), each with one action. */
