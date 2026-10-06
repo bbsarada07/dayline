@@ -14,9 +14,11 @@ export function DemoBanner() {
   const [confirming, setConfirming] = useState(false);
   const reset = useMutation({
     mutationFn: () => api<{ now: string }>("/demo/reset", { method: "POST", timeoutMs: 60_000 }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       setConfirming(false);
-      client.invalidateQueries();
+      // Show the new demo time at once, then refetch everything else.
+      client.setQueryData(["clock"], { now: data.now, demo: true, demo_mode: true });
+      client.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "clock" });
     },
   });
 
