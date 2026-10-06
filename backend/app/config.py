@@ -51,6 +51,13 @@ class Settings:
     # Addendum D/F: public URL of the deployment (webhooks, secure cookies) and demo mode.
     public_base_url: str
     demo_mode: bool
+    # Agents: "lyzr" or "mock" (keyword router). Phase 6 only uses the mock router.
+    agent_mode: str
+    # Qdrant shared memory (addendum G).
+    qdrant_url: str
+    qdrant_api_key: str
+    qdrant_collection: str
+    memory_model: str
 
     @property
     def https(self) -> bool:
@@ -102,6 +109,11 @@ def load_settings() -> Settings:
         port=int(os.environ.get("PORT", "8000")),
         public_base_url=_public_base_url(),
         demo_mode=_flag("DEMO_MODE", False),
+        agent_mode=os.environ.get("AGENT_MODE", "mock").strip().lower() or "mock",
+        qdrant_url=os.environ.get("QDRANT_URL", "").strip().rstrip("/"),
+        qdrant_api_key=os.environ.get("QDRANT_API_KEY", "").strip(),
+        qdrant_collection=os.environ.get("QDRANT_COLLECTION", "").strip() or "dayline_memory",
+        memory_model=os.environ.get("MEMORY_MODEL", "").strip() or "sentence-transformers/all-minilm-l6-v2",
     )
 
 

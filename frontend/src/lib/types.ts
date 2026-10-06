@@ -204,3 +204,28 @@ export type CollectCandidates = {
   demo_mode: boolean;
   students: { id: number; name: string; roll_no: string; has_card: boolean; ready: number; waiting: number }[];
 };
+
+export type MemoryWriter = "timetable" | "print" | "canteen" | "orchestrator" | "omi" | "student";
+export type MemoryKind = "preference" | "action" | "fact" | "conversation" | "instruction";
+
+export type MemoryItem = {
+  id: string;
+  kind: MemoryKind;
+  text: string;
+  written_by: MemoryWriter;
+  source_ref: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  data: Record<string, unknown>;
+  score: number | null;
+};
+
+export type MemoryStatus = {
+  backend: "qdrant" | "temporary";
+  ok: boolean;
+  configured: boolean;
+  collection: string | null;
+  notice: string | null;
+};
+
+export type MemoryList = { status: MemoryStatus; query: string | null; memories: MemoryItem[] };

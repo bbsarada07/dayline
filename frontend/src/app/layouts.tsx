@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router";
-import { CalendarClock, ChartNoAxesColumn, LogOut, Printer, User, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { Brain, CalendarClock, ChartNoAxesColumn, LogOut, Printer, User, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { DemoBanner } from "@/components/DemoBanner";
 import { LiveBadge } from "@/components/LiveBadge";
 import { Notices } from "@/components/Notices";
@@ -15,10 +15,11 @@ const STUDENT_NAV: NavItem[] = [
   { to: "/canteen", label: "Canteen", icon: UtensilsCrossed },
   { to: "/print", label: "Print", icon: Printer },
   { to: "/attendance", label: "Attendance", icon: ChartNoAxesColumn },
+  { to: "/memory", label: "Memory", icon: Brain },
   { to: "/profile", label: "Profile", icon: User },
 ];
-// The phone dock has room for four; Profile is reached from the avatar on Today.
-const DOCK_NAV = STUDENT_NAV.filter((item) => item.to !== "/profile");
+// The phone dock has room for four; Profile (and Memory, from Profile) is reached from the avatar on Today.
+const DOCK_NAV = STUDENT_NAV.filter((item) => item.to !== "/profile" && item.to !== "/memory");
 
 /** Logo: a tilted ink tile with the day line and its "now" dot, plus the name. */
 export function Brand({ className, onDark = false }: { className?: string; onDark?: boolean }) {

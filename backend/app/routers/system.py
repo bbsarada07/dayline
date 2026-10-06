@@ -9,6 +9,7 @@ from app import clock, demo
 from app.config import APP_NAME, settings
 from app.db import get_session
 from app.models import Student
+from app.services import memory_service
 
 router = APIRouter(tags=["system"])
 
@@ -22,12 +23,23 @@ def _set(*names: str) -> bool:
     return all(os.environ.get(name, "").strip() for name in names)
 
 
+def _qdrant_health() -> dict:
+    memory = memory_service.status()
+    return {
+        "configured": memory["configured"],
+        "connection_checked": memory["configured"],
+        "ok": memory["ok"],
+        "store": memory["backend"],
+        "collection": memory["collection"],
+    }
+
+
 @router.get("/health")
 def health(session: Session = Depends(get_session)) -> dict:
     """Is the app up, and which integrations are configured? No login; never returns secret values.
 
-    Qdrant, Lyzr and Omi are reported as configured or not; live connection checks
-    are added when each integration is built.
+    Qdrant is checked live (Phase 6). Lyzr and Omi are reported as configured or not;
+    their live checks are added with Phases 7 and 8.
     """
     try:
         students = session.exec(select(func.count(Student.id))).one()
@@ -42,7 +54,7 @@ def health(session: Session = Depends(get_session)) -> dict:
         "demo_time": clock.is_overridden(),
         "public_base_url": settings.public_base_url or None,
         "database": database,
-        "qdrant": {"configured": _set("QDRANT_URL", "QDRANT_API_KEY"), "connection_checked": False},
+        "qdrant": _qdrant_health(),
         "lyzr": {
             "configured": _set("LYZR_API_KEY"),
             "agents_configured": sum(_set(name) for name in LYZR_AGENT_VARS),

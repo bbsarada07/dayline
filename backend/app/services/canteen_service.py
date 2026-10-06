@@ -17,7 +17,7 @@ from app.config import IST
 from app.errors import ApiError
 from app.events import hub
 from app.models import MenuItem, Order, OrderItem, Student
-from app.services import payments, settings_service, timetable_service
+from app.services import memory_service, payments, settings_service, timetable_service
 
 STEP_MINUTES = 5
 WINDOW_MINUTES = 15
@@ -365,7 +365,22 @@ def place_order(
     session.refresh(order)
     _publish_order(session, order, "order.created")
     _publish_menu([session.get(MenuItem, l.menu_item_id) for l in q.lines])
+    _remember_order(student, order, q)
     return order
+
+
+def _remember_order(student: Student, order: Order, q: Quote) -> None:
+    """Shared memory: what was ordered, for when and on which weekday ("my usual Monday lunch")."""
+    pickup = _load(order.pickup_time)
+    items = ", ".join(f"{line.name} × {line.qty}" for line in q.lines)
+    memory_service.remember_later(
+        student.id, f"Ordered {items} for {short_time(pickup)} pickup on a {pickup:%A}",
+        kind="action", written_by="canteen", source_ref=f"order:{order.id}",
+        data={
+            "order_id": order.id, "weekday": pickup.weekday(), "pickup": f"{pickup:%H:%M}",
+            "items": [{"menu_item_id": l.menu_item_id, "name": l.name, "qty": l.qty} for l in q.lines],
+        },
+    )
 
 
 def _get_order(session: Session, order_id: int) -> Order:

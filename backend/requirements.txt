@@ -6,3 +6,4 @@ pypdf==6.19.0
 python-multipart==0.0.32
 bcrypt==5.0.0
 httpx==0.28.1
+qdrant-client==1.19.1

@@ -2,7 +2,7 @@
 
 A campus web app for students of one engineering college: the timetable, attendance, canteen pre-orders and print jobs, all tied to the student's day.
 
-> **Status: Phase 5 of `DAYLINE_ADDENDUM_V2.md` section K (deploy) built.** Foundation, Today screen, attendance, print, canteen and collect by barcode are done. The full README (architecture diagram, sponsor integrations, demo script, known limits) is written in Phase 10.
+> **Status: Phase 6 of `DAYLINE_ADDENDUM_V2.md` section K (Qdrant shared memory) built.** Foundation, Today screen, attendance, print, canteen, collect by barcode and deployment are done. The full README (architecture diagram, sponsor integrations, demo script, known limits) is written in Phase 10.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bbsarada07/dayline)
 
@@ -101,3 +101,12 @@ Admins can set **demo time** on the admin screen. The app's clock then runs from
 - An empty database is seeded on boot, so a fresh deployment is ready to use.
 - With `DEMO_MODE=true` the clock starts at this week's **Monday 12:20** and runs forward. The banner offers **Reset demo**, which re-seeds everything and puts the clock back. Seed it the same way locally with `python -m app.seed --demo`.
 - `GET /api/health` reports the database and whether Qdrant, Lyzr and Omi are configured (it never returns secret values).
+
+## Shared memory with Qdrant (Phase 6)
+
+- One memory every agent reads and writes, in the Qdrant collection `dayline_memory` (one tenant per student: payload index `student_id` with `is_tenant`). Code: `backend/app/services/memory_service.py` and `memory_backends.py`.
+- Embeddings come from **Qdrant Cloud Inference** with the free model `sentence-transformers/all-minilm-l6-v2` (384 dimensions), so no paid key and no model on our server.
+- Every read, update and delete is filtered by the student id from the login session. `pytest tests/test_memory.py` proves isolation offline; `DAYLINE_LIVE_QDRANT=1 pytest tests/test_memory_live.py` proves it on the real cluster.
+- Written automatically after each order ("Ordered Veg fried rice × 1 for 12:40 pickup on a Monday") and print job ("Printed lab_record.pdf: 2 copies, black and white, double sided"), and when the student says "Remember that …" on the Memory screen.
+- The **Memory** screen lists memories newest first, searches by meaning, shows who wrote each one and when it was last used, and deletes one or all.
+- If Qdrant can't be reached, memories go to a temporary in-process store and the Memory screen says so; the app keeps working and reconnects automatically.

@@ -272,6 +272,11 @@ def seed(demo: bool | None = None) -> None:
     settings_service.invalidate()
     if start:
         clock.set_demo_time(start)
+    # Memories live in Qdrant, which survives a reset; old ones would point at
+    # orders and jobs that no longer exist.
+    from app.services import memory_service
+
+    memory_service.forget_students(list(range(1, len(STUDENTS) + 1)))
     print(f"Seeded {len(STUDENTS)} students, {len(STAFF)} staff, {len(SUBJECTS)} subjects, "
           f"{len(ROOMS)} rooms, {len(MENU)} menu items and {PAST_DAYS} days of past orders. "
           f"PIN for every account: {DEMO_PIN}"

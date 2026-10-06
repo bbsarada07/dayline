@@ -1,4 +1,5 @@
-import { CreditCard, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { Brain, ChevronRight, CreditCard, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { Link } from "react-router";
 import { Brand } from "@/app/layouts";
 import { Barcode } from "@/components/Barcode";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,20 @@ export function ProfilePage() {
           {me.card_uid ? <Barcode value={me.card_uid} className="mt-3 border-2 border-edge" /> : null}
         </div>
       </section>
+
+      <Link
+        to="/memory"
+        className="press flex items-center gap-3 rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard"
+      >
+        <span className="flex size-11 shrink-0 -rotate-6 items-center justify-center rounded-[12px] border-2 border-edge bg-hero text-hero-text">
+          <Brain className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-21 font-extrabold">Memory</span>
+          <span className="block text-13 font-semibold text-muted">What Dayline remembers about you, and who wrote it</span>
+        </span>
+        <ChevronRight className="size-5 shrink-0" aria-hidden />
+      </Link>
 
       <section className="rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard">
         <h2 id="theme-label" className="font-display text-21 font-extrabold">

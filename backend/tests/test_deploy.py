@@ -30,7 +30,8 @@ def test_health_reports_integrations_without_secrets(client, monkeypatch):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok" and data["database"] == {"ok": True, "students": 6}
-    assert data["qdrant"]["configured"] is True
+    assert data["qdrant"]["configured"] is True and data["qdrant"]["ok"] is True
+    assert data["qdrant"]["store"] == "qdrant" and data["qdrant"]["connection_checked"] is True
     assert data["lyzr"]["configured"] is True and data["lyzr"]["agents_configured"] == 1
     assert data["omi"]["configured"] is False
     assert "super-secret" not in response.text

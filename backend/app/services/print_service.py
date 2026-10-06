@@ -19,7 +19,7 @@ from app.config import IST, settings
 from app.errors import ApiError
 from app.events import hub
 from app.models import PrintJob, PrintUpload, Student
-from app.services import payments, settings_service, timetable_service
+from app.services import memory_service, payments, settings_service, timetable_service
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 MAX_COPIES = 20
@@ -321,7 +321,21 @@ def create_job(
     session.refresh(job)
     _publish(session, job, "print.created")
     recompute_estimates(session)
+    _remember_job(student, job)
     return job
+
+
+def _remember_job(student: Student, job: PrintJob) -> None:
+    """Shared memory: how this student prints, so "print it like last time" works."""
+    copies = f"{job.copies} {'copy' if job.copies == 1 else 'copies'}"
+    colour = "colour" if job.color else "black and white"
+    sides = "double sided" if job.double_sided else "single sided"
+    memory_service.remember_later(
+        student.id, f"Printed {job.original_filename}: {copies}, {colour}, {sides}",
+        kind="action", written_by="print", source_ref=f"print:{job.code}",
+        data={"job_id": job.id, "copies": job.copies, "color": job.color,
+              "double_sided": job.double_sided, "pages": job.pages},
+    )
 
 
 def _get_job(session: Session, job_id: int) -> PrintJob:

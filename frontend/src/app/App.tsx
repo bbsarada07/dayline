@@ -18,6 +18,7 @@ import { AdminPage } from "@/features/admin/AdminPage";
 import { StaffHomePage } from "@/features/staff/StaffHomePage";
 import { PrintPage } from "@/features/print/PrintPage";
 import { CanteenPage } from "@/features/canteen/CanteenPage";
+import { MemoryPage } from "@/features/memory/MemoryPage";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -100,6 +101,7 @@ export function App() {
             <Route path="canteen" element={<CanteenPage />} />
             <Route path="print" element={<PrintPage />} />
             <Route path="attendance" element={<AttendancePage />} />
+            <Route path="memory" element={<MemoryPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
           <Route

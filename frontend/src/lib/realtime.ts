@@ -52,6 +52,11 @@ function invalidate(client: QueryClient, event: RealtimeEvent) {
       // Demo time or thresholds changed: everything time- or setting-based is stale.
       client.invalidateQueries();
       break;
+    case "memory.updated":
+      // Refresh the list only: a search marks memories as used, which sends this event,
+      // so refetching the search here would loop.
+      client.invalidateQueries({ queryKey: ["memory", "list"] });
+      break;
     case "demo.reset":
       // Someone pressed "Reset demo": all data was re-seeded, so refetch everything.
       client.invalidateQueries();

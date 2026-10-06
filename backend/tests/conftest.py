@@ -11,13 +11,29 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'test.db'}"
 os.environ["UPLOAD_DIR"] = str(_TMP / "uploads")
 os.environ.setdefault("SECRET_KEY", "test-secret")
 os.environ["DEMO_MODE"] = "true"
+os.environ["AGENT_MODE"] = "mock"
+# Never reach the real Qdrant cluster from the normal test run. The real keys are kept
+# aside (from the environment or backend/.env) only for test_memory_live.py.
+_dotenv = Path(__file__).resolve().parent.parent / ".env"
+_file_values = dict(
+    line.split("=", 1) for line in (_dotenv.read_text(encoding="utf-8").splitlines() if _dotenv.exists() else [])
+    if "=" in line and not line.lstrip().startswith("#")
+)
+for _key in ("QDRANT_URL", "QDRANT_API_KEY"):
+    os.environ[f"LIVE_{_key}"] = os.environ.get(_key) or _file_values.get(_key, "").strip()
+    os.environ[_key] = ""
 
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app import clock  # noqa: E402
 from app.main import app  # noqa: E402
 from app.seed import seed  # noqa: E402
-from app.services import settings_service  # noqa: E402
+from app.services import memory_service, settings_service  # noqa: E402
+from app.services.memory_backends import QdrantBackend  # noqa: E402
+
+# Real Qdrant code paths (filters, indexes, scroll order) on an in-process Qdrant.
+memory_service.configure(QdrantBackend.local())
+memory_service.backend().ensure()
 
 # Monday 5 Oct 2026, 08:00 IST, as real wall-clock time for every test.
 REAL_NOW = datetime(2026, 10, 5, 2, 30, tzinfo=timezone.utc)

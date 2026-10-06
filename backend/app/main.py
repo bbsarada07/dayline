@@ -16,9 +16,9 @@ from app.errors import ApiError, install_error_handlers
 from app.demo import ensure_demo_clock
 from app.events import hub
 from app.models import Student
-from app.routers import admin, attendance, auth, canteen, collect, system, timetable, today
+from app.routers import admin, attendance, auth, canteen, collect, memory, system, timetable, today
 from app.routers import print as print_router
-from app.services import maintenance
+from app.services import maintenance, memory_service
 
 
 def lan_addresses() -> list[str]:
@@ -48,6 +48,9 @@ async def lifespan(_app: FastAPI):
 
         seed()
     ensure_demo_clock()
+    # Connect to Qdrant (and create the collection) now, in the background, so the
+    # first memory action of the day isn't the slow one.
+    asyncio.get_running_loop().run_in_executor(None, memory_service.status)
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     hub.bind_loop(asyncio.get_running_loop())
     print(f"[{APP_NAME}] API ready on port {settings.port}")
@@ -70,7 +73,7 @@ if settings.cors_origins:
         allow_headers=["*"],
     )
 
-for module in (auth, timetable, attendance, today, admin, print_router, canteen, collect, system):
+for module in (auth, timetable, attendance, today, admin, print_router, canteen, collect, system, memory):
     app.include_router(module.router, prefix="/api")
 
 
