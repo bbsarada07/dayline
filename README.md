@@ -1,130 +1,359 @@
 # Dayline
 
-A campus web app for students of one engineering college: the timetable, attendance, canteen pre-orders and print jobs, all tied to the student's day.
+> **Stop waiting in queues. Let your agents handle it.**
 
-> **Status: Phase 7 of `DAYLINE_ADDENDUM_V2.md` section K (Lyzr agents) built.** Foundation, Today screen, attendance, print, canteen, collect by barcode, deployment and Qdrant shared memory are done. The full README (architecture diagram, sponsor integrations, demo script, known limits) is written in Phase 10.
+Dayline is a voice-first, memory-backed campus assistant where three AI agents — Timetable, Print and Canteen — plan your day around your actual schedule. Ask once, by voice or text, and they figure out when your next class is, queue your printout to be ready before it, and order your lunch for the right break. No separate apps. No manual juggling.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bbsarada07/dayline)
+Built for the HiDevs hackathon: **Stop Prompting. Code Solo Agents.**
 
-Deployment steps, limits and alternatives: [DEPLOY.md](DEPLOY.md).
+[![Demo](https://img.shields.io/badge/Live%20Demo-Open-brightgreen)](https://your-deployed-url.com)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The product name is set in one place: `app.config.json`.
+---
 
-## Requirements
+## The problem
 
-- Python 3.11 or newer (tested on 3.14)
-- Node.js 20 or newer (tested on 24)
+Every engineering student in India loses time to three things every single day:
 
-## Backend
+**The print queue.** A lab starts in 20 minutes. The print shop has 15 people ahead of you. You skip lunch to get the record ready. There is no way to submit ahead, no way to know when it will be done.
 
-```sh
+**The canteen queue.** You order, then wait while it is cooked. Canteen staff cook blind — they do not know how much to make until people show up. Leftover food gets thrown away.
+
+**Attendance arithmetic.** You want to bunk one class. You do not know if you can afford it. You open a spreadsheet and calculate. Or you guess and regret it.
+
+These are not three separate problems. They are one. Everything is connected to your timetable, and right now nothing talks to anything else.
+
+---
+
+## The solution
+
+Dayline connects these three problems through a **multi-agent execution loop** built on Lyzr, Qdrant and Omi.
+
+One request — typed, spoken on the phone, or said aloud to an Omi wearable — is handled by an orchestrator that delegates to three specialised sub-agents. The Timetable agent checks your next class. The Print agent sets the deadline from that. The Canteen agent sets the pickup time from your next free slot. They share a **vector memory in Qdrant** so each one knows what the others have learned about you.
+
+The result drops onto your day as a timeline of coloured passes. When you walk to the canteen or the print shop, you tap your ID card barcode and the order is marked collected — no token, no queue.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Student                                  │
+│          Web app (React + Vite)  ·  Omi wearable               │
+└────────────┬──────────────────────────────┬────────────────────┘
+             │ HTTP / SSE / WebSocket        │ Webhook
+             ▼                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   FastAPI backend                               │
+│                                                                 │
+│  ┌─────────────┐   ┌──────────────────────────────────────┐     │
+│  │  REST API   │   │         Agent layer                  │     │
+│  │  /api/*     │   │                                      │     │
+│  │             │   │  Orchestrator (Lyzr Managerial)      │     │
+│  │  Auth       │   │       │          │          │        │     │
+│  │  Timetable  │   │  Timetable   Print      Canteen      │     │
+│  │  Print      │   │   agent      agent       agent       │     │
+│  │  Canteen    │   │       │          │          │        │     │
+│  │  Tap/Scan   │   │       └──────────┴──────────┘        │     │
+│  │  Memory     │   │              tool calls              │     │
+│  │  Omi hooks  │   │         /api/agent-tools/*           │     │
+│  └──────┬──────┘   └──────────────────────────────────────┘     │
+│         │                        │                              │
+└─────────┼────────────────────────┼──────────────────────────────┘
+          │                        │
+          ▼                        ▼
+  ┌───────────────┐      ┌─────────────────┐
+  │  SQLite DB    │      │  Qdrant Cloud   │
+  │               │      │                 │
+  │  Students     │      │  dayline_memory │
+  │  Timetable    │      │  collection     │
+  │  Attendance   │      │                 │
+  │  Orders       │      │  preferences    │
+  │  Print jobs   │      │  past actions   │
+  │  Tap logs     │      │  facts from Omi │
+  │  Memory refs  │      │  instructions   │
+  └───────────────┘      └─────────────────┘
+```
+
+### How the agents collaborate
+
+```
+Student: "Get me lunch and print my lab record before my next class"
+         │
+         ▼
+  Orchestrator (Lyzr)
+         │
+         ├──► Timetable agent
+         │         reads: today's schedule
+         │         returns: next class = DBMS lab at 2:00, free slot = 12:40
+         │         writes to Qdrant: "user checked timetable Mon 12:20"
+         │
+         ├──► Print agent
+         │         reads: Qdrant memory ("last time: 2 copies, B&W, double-sided")
+         │         uses: next class time from Timetable agent
+         │         returns: proposal — P-0042, ready by 1:50, ₹48
+         │         writes to Qdrant: "proposed print job Mon 12:22"
+         │
+         └──► Canteen agent
+                   reads: Qdrant memory ("usual Monday lunch: veg fried rice")
+                   uses: free slot from Timetable agent
+                   returns: proposal — Token 16, pickup 12:40, ₹60
+                   writes to Qdrant: "proposed canteen order Mon 12:22"
+         │
+         ▼
+  Orchestrator returns two confirm cards to the student.
+  Nothing is ordered until the student presses "Confirm and pay".
+```
+
+---
+
+## How Dayline uses each sponsor tool
+
+### Omi
+
+Omi is the hands-free entry point. Dayline registers two webhooks:
+
+- **`POST /api/omi/transcript`** — receives live transcript segments. When the wake phrase "hey dayline" is detected, the words after it are sent to the orchestrator in voice mode. The reply is sent back through Omi's notification API as a short spoken response.
+- **`POST /api/omi/memory`** — receives a finished conversation summary. The Listener agent (Lyzr) extracts up to five items that matter to Dayline: deadlines, things to print, food preferences, timetable changes. These are stored in Qdrant tagged `written_by = omi`. A nudge appears on the student's day if the item is actionable.
+
+Without an Omi device, the **Omi simulator** at `/omi-simulator` drives both code paths from the browser.
+
+### Qdrant
+
+Qdrant is the shared vector memory. Every agent reads and writes to one collection: `dayline_memory`.
+
+- **Reads:** before each orchestrator run, the top five memories relevant to the message are retrieved and injected as context. Sub-agents call `recall(query)` from their tool set.
+- **Writes:** after each confirmed action, from Omi conversations, and when the student says "remember that…". Each entry carries who wrote it (`written_by`), what kind it is (`preference`, `action`, `fact`, `instruction`) and when it was last used.
+- **Isolation:** every query and delete is filtered by `student_id` on the server. A test in the suite proves student A cannot retrieve student B's memory.
+
+Visible effect: "Order my usual" resolves from past orders. "Print it like last time" reuses saved settings. A fact captured by Omi ("lab record due Thursday") sets the print agent's deadline.
+
+### Lyzr
+
+Lyzr runs the orchestrator and all sub-agents. The architecture uses Lyzr's Managerial agent type, where the Orchestrator delegates to sub-agents, and custom tools registered from the backend's OpenAPI description.
+
+- **Agents:** Orchestrator, Timetable, Print, Canteen, Listener (5 total, within the free plan's limit of 10).
+- **Tools:** each sub-agent calls `/api/agent-tools/*` endpoints. These are thin wrappers over the same service functions the REST API uses. A short-lived `run_token` maps each tool call to the student and conversation; the model never supplies a student id.
+- **Streaming:** agent activity streams to the frontend over SSE as `agent_started`, `tool_called`, `memory_read`, `memory_write` and `final` events. The student watches each agent light up in turn.
+- **Fallback:** if Lyzr is unreachable or times out (20 seconds), a keyword router handles the request and the trace says so. The app never crashes.
+
+---
+
+## Key features
+
+| Feature | How it works |
+| --- | --- |
+| Multi-agent chat | Lyzr Managerial orchestrator delegates to three specialised sub-agents |
+| Voice input | Hold to talk in the browser; Omi wearable for ambient capture |
+| Shared memory | Qdrant vector store, one collection, all agents read and write |
+| Timeline view | The student's day as a strip; orders and print jobs appear as ticket-shaped passes |
+| Print ahead | Upload a PDF; the deadline is set from your next class automatically |
+| Canteen pre-order | Order before you leave class; collect by tapping your ID barcode |
+| Attendance maths | How many classes you can miss, or must attend, stated plainly |
+| Standing instructions | "Order my usual lunch on lab days, up to ₹80" — agents act within your limit, notify you, and you can undo within five minutes |
+| Omi simulator | Drives both Omi webhooks from the browser; no device needed |
+| Demo mode | Fixed demo clock, one-click reset, demo accounts on the login screen |
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion, TanStack Query |
+| Backend | Python 3.11, FastAPI, SQLModel, SQLite, Uvicorn |
+| Agents | Lyzr Agent Studio (Managerial + Agent types) |
+| Memory | Qdrant Cloud (free tier), FastEmbed for local embeddings |
+| Voice wearable | Omi by Based Hardware |
+| Realtime | WebSocket (FastAPI), Server-Sent Events for agent trace |
+| Auth | httpOnly session cookie, bcrypt PIN hashing |
+| Deployment | Docker, [hosting provider] |
+
+---
+
+## Repository layout
+
+```
+dayline/
+  backend/
+    app/
+      main.py              # App entry, CORS, routers, WebSocket
+      config.py            # Env settings
+      clock.py             # Clock service (real + demo override)
+      db.py                # Engine, session
+      models.py            # SQLModel tables
+      auth.py              # Login, session, role guards
+      routers/             # timetable, attendance, print, canteen,
+      │                    # tap, agent, agent_tools, omi, admin, today
+      services/            # Business logic, one module per domain
+      agents/
+        llm.py             # LLM client interface
+        orchestrator.py    # Lyzr managerial agent caller
+        timetable_agent.py
+        print_agent.py
+        canteen_agent.py
+        listener_agent.py  # Omi memory extraction
+        tools.py           # Tool schemas → service functions
+        prompts/           # System prompts as .md files
+        mock_router.py     # Keyword fallback, no API key needed
+      events.py            # WebSocket broadcast
+      seed.py              # Sample data
+    tests/                 # pytest suite
+    uploads/               # Print files (git-ignored)
+    .env.example
+    requirements.txt
+    Dockerfile
+  frontend/
+    src/
+      app/                 # Routes, layouts
+      components/          # UI primitives, feature components
+      features/            # today, ask, print, canteen,
+      │                    # attendance, memory, staff, admin, omi-sim
+      lib/                 # API client, WebSocket hook, formatters
+      styles/              # Design tokens, globals
+  scripts/
+    setup_lyzr.py          # Creates / updates Lyzr agents idempotently
+  docs/
+    demo-script.md         # Five-minute demo walkthrough
+  README.md
+  DAYLINE_SPEC.md
+  DAYLINE_ADDENDUM_V2.md
+```
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- Python 3.11 or later
+- Node.js 20 or later
+- A [Qdrant Cloud](https://cloud.qdrant.io) free-tier cluster
+- A [Lyzr Studio](https://studio.lyzr.ai) free account
+- (Optional) Omi app and wearable for real voice capture
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/bbsarada07/Cardiac.git
+cd dayline
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env`:
+
+```env
+PUBLIC_BASE_URL=http://localhost:8000
+AGENT_MODE=mock                        # mock | lyzr
+LYZR_API_KEY=
+LYZR_ORCHESTRATOR_AGENT_ID=
+LYZR_TIMETABLE_AGENT_ID=
+LYZR_PRINT_AGENT_ID=
+LYZR_CANTEEN_AGENT_ID=
+LYZR_LISTENER_AGENT_ID=
+QDRANT_URL=https://xxx.cloud.qdrant.io
+QDRANT_API_KEY=
+OMI_APP_ID=
+OMI_APP_SECRET=
+TOOL_KEY=changeme
+DEMO_MODE=true
+```
+
+### 2. Backend
+
+```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate            # Windows
-# source .venv/bin/activate       # macOS / Linux
-pip install -r requirements-dev.txt   # runtime + test tools
-copy .env.example .env            # then set SECRET_KEY (see the comment in the file)
-python -m app.seed                # reset the database and load placeholder data
-python -m app                     # API on http://0.0.0.0:8000
-pytest                            # run the tests
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python -m app.seed                 # Load sample data
+uvicorn app.main:app --reload
 ```
 
-## Frontend (development)
+Backend runs on `http://localhost:8000`. On start it prints the LAN address so your phone can reach it on the same hotspot.
 
-```sh
+### 3. Frontend
+
+```bash
 cd frontend
 npm install
-npm run dev                       # http://localhost:5173, proxies /api and /ws to :8000
+npm run dev
 ```
 
-To use a phone, join the same Wi-Fi or hotspot as the laptop and open the "Network" URL that Vite prints.
+Frontend runs on `http://localhost:5173`. Vite proxies `/api` and `/ws` to the backend.
 
-## One URL (demo mode)
+### 4. Set up Lyzr agents (skip in mock mode)
 
-```sh
-cd frontend && npm run build
-cd ../backend
-# set SERVE_FRONTEND=true in .env, then:
-python -m app
+```bash
+cd scripts
+python setup_lyzr.py
 ```
 
-The server prints its LAN address, for example `http://192.168.1.3:8000`. Open that on a phone on the same network.
+This creates or updates the five agents idempotently and prints their IDs. Copy them into `.env`.
 
-## `.env` variables
+### 5. Connect Omi (optional)
 
-| Name | Purpose |
-|---|---|
-| `SECRET_KEY` | Signs login cookies. Required; a random one is used (and logins reset on restart) if missing. |
-| `DATABASE_URL` | SQLite file. Default `backend/dayline.db`. |
-| `PORT` | API port. Default 8000. |
-| `SESSION_DAYS` | How long a login lasts. Default 7. |
-| `SERVE_FRONTEND` | `true` to serve `frontend/dist` from the API server. |
-| `CORS_ORIGINS` | Only needed when the frontend runs on another origin without the Vite proxy. |
-| `AGENT_MODE` | `mock` (keyword router, no key, no credits) or `lyzr` (real agents, once the key and agent ids are set). |
-| `LYZR_API_KEY`, `LYZR_*_AGENT_ID` | Lyzr key and the five agent ids printed by `scripts/setup_lyzr.py`. |
-| `LYZR_MODEL`, `LYZR_TEMPLATE_AGENT_ID` | Used only by `setup_lyzr.py`: the model, and a hand-made Studio agent whose provider settings it copies. |
-| `LYZR_TIMEOUT_SECONDS`, `LYZR_DAILY_CALL_LIMIT` | Per-call wait (default 20) and real calls allowed per day (default 100); past either, the keyword router answers. |
-| `TOOL_KEY` | Optional. Turns on `/api/agent-tools/*` for agents hosted elsewhere. |
+Once the backend is deployed and `PUBLIC_BASE_URL` is set:
 
-## Demo accounts (placeholder data)
+1. Open the app, log in as a student, go to **Profile → Connect Omi**.
+2. Copy the two webhook URLs shown there.
+3. Open the Omi app → Developer → paste each URL.
 
-Every account uses PIN `1234`. The login screen's "Demo accounts" drawer lists them while the `demo_mode` setting is on.
+Without a device, use the simulator at `/omi-simulator`.
 
-| Who | Log in with |
-|---|---|
-| Ananya Rao (student, 2 subjects below 75%) | `22CS001` |
-| Priya Nair, Rohan Kulkarni, Arjun Mehta, Sneha Patil, Karthik Reddy (students) | `22CS002` to `22CS006` |
-| Admin | `admin` |
-| Canteen staff | `canteen` |
-| Print shop staff | `print` |
+---
 
-Admins can set **demo time** on the admin screen. The app's clock then runs from that moment for everyone, and a banner shows on every screen.
+## Demo accounts
 
-## Print (Phase 2)
+Set `DEMO_MODE=true` in `.env`. All PINs are `1234`.
 
-- Students upload a PDF on the Print screen, pick copies, colour and sides, see the cost, the deadline (10 minutes before their next class by default) and an estimated ready time, then confirm with a **demo payment: no money moves**.
-- Print shop staff log in as `print` and see the queue sorted by deadline, live. Jobs due within 15 minutes are marked "Urgent".
-- Uploaded files live in `backend/uploads/` under random names, are only served to the owning student and print staff, and are deleted when a job is collected, cancelled or expires (24 hours). Unpaid uploads are deleted after 24 hours.
-- Print rates are placeholders until an admin saves real ones on the admin screen.
+| Role | Username / Roll no | What to do |
+| --- | --- | --- |
+| Student | [roll number from seed] | Ask agents, order, print, check memory |
+| Canteen staff | canteen | See orders arrive, mark ready |
+| Print shop | print | See print jobs, mark ready |
+| Admin | admin | Settings, card enrolment |
 
-## Canteen (Phase 3)
+---
 
-- Students order from the menu, pick a pickup time (suggested: their next break or free slot), pay with the **demo payment** and get a token. The order appears on the day line at its pickup time.
-- Canteen staff log in as `canteen`. The kitchen board (dark by default) shows the prep list per 15-minute pickup window, tickets in Placed / Preparing / Ready, and a "Menu and stock" tab with suggested prep (a plain average of the last 4 same weekdays).
-- Orders still `ready` 30 minutes after pickup, and unfinished orders from earlier days, become "Not collected" automatically.
+## Running tests
 
-## Collect by barcode (Phase 4)
+```bash
+cd backend
+pytest tests/ -v
+```
 
-- Every student ID card carries a Code 128 barcode of the roll number. Students also see it on their Profile ID card and on any pass that is ready, so it can be scanned from a phone.
-- The kitchen board and the print queue each have a **Collect** field that keeps focus. A USB barcode scanner types the code and presses Enter; everything ready for that student at that desk is handed over, and their pass is stamped "Collected" live.
-- Results: Collected, Not ready yet, Nothing to collect, Unknown card, each shown large for 4 seconds with a distinct sound (toggle on the desk). A second scan of the same card within 3 seconds is ignored. Every scan is logged.
-- No scanner? In demo mode, use **Simulate scan** beside the field.
+The suite covers attendance maths, print cost and queue ordering, token numbering, stock under concurrent orders, every tap/scan status and permission checks.
 
-## Deploy and demo mode (Phase 5)
+---
 
-- One Docker container (`Dockerfile`) serves the API, the realtime socket and the built frontend. `render.yaml` deploys it to Render's free plan in one click; see [DEPLOY.md](DEPLOY.md).
-- An empty database is seeded on boot, so a fresh deployment is ready to use.
-- With `DEMO_MODE=true` the clock starts at this week's **Monday 12:20** and runs forward. The banner offers **Reset demo**, which re-seeds everything and puts the clock back. Seed it the same way locally with `python -m app.seed --demo`.
-- `GET /api/health` reports the database and whether Qdrant, Lyzr and Omi are configured (it never returns secret values).
+## Demo script
 
-## Shared memory with Qdrant (Phase 6)
+See [`docs/demo-script.md`](docs/demo-script.md) for the five-minute walkthrough used in the submission video.
 
-- One memory every agent reads and writes, in the Qdrant collection `dayline_memory` (one tenant per student: payload index `student_id` with `is_tenant`). Code: `backend/app/services/memory_service.py` and `memory_backends.py`.
-- Embeddings come from **Qdrant Cloud Inference** with the free model `sentence-transformers/all-minilm-l6-v2` (384 dimensions), so no paid key and no model on our server.
-- Every read, update and delete is filtered by the student id from the login session. `pytest tests/test_memory.py` proves isolation offline; `DAYLINE_LIVE_QDRANT=1 pytest tests/test_memory_live.py` proves it on the real cluster.
-- Written automatically after each order ("Ordered Veg fried rice × 1 for 12:40 pickup on a Monday") and print job ("Printed lab_record.pdf: 2 copies, black and white, double sided"), and when the student says "Remember that …" on the Memory screen.
-- The **Memory** screen lists memories newest first, searches by meaning, shows who wrote each one and when it was last used, and deletes one or all.
-- If Qdrant can't be reached, memories go to a temporary in-process store and the Memory screen says so; the app keeps working and reconnects automatically.
+The fastest path to see all three agents collaborate:
 
-## Agents with Lyzr (Phase 7)
+1. Log in as a student.
+2. Attach a PDF to the ask bar and type: *Get me lunch and print this before my next class.*
+3. Watch Timetable, Print and Canteen light up in turn.
+4. Confirm both proposals.
+5. In a second window, log in as canteen, mark the order ready, and use **Simulate scan**.
+6. Back as the student, the pass is stamped **Collected** and the memory entry appears.
 
-- **Ask Dayline**: on phones, the bar above the dock opens a full-height sheet; on laptops, it's a panel on Today and a button on every other screen. Type, hold the mic to talk (where the browser supports it; spoken replies can be muted), attach a PDF, or tap a shortcut.
-- **Five agents:** Orchestrator, Timetable, Print, Canteen (and a Listener for Omi in Phase 8). Their instructions are `backend/app/agents/prompts/*.md`; `python -m scripts.setup_lyzr --apply` creates or updates them in Lyzr and prints their ids.
-- **Our backend orchestrates** (addendum H fallback): the free plan's custom tools would need a public tool server for every call, so Lyzr agents answer in JSON (which agents to ask, which tools to call) and the backend runs the tools itself (`backend/app/agents/orchestrator.py`, `tools.py`). Each agent call falls back to the keyword router (`mock_router.py`) on timeout, error, bad JSON or the daily call limit, and the trace says so.
-- **The model never sees who the student is.** Each message starts a run with a random 5-minute run token; tools take no student id and their arguments reject unknown fields; Lyzr sees a pseudonymous user id. Questions about another student are refused before any model is called.
-- **Numbers come from tools.** An answer with a number that isn't in the tool results is replaced by the router's answer from the same results.
-- **Agents never spend money.** Food orders and print jobs come back as dashed proposal cards; "Confirm and pay" uses the normal canteen and print endpoints, and "Edit" opens those screens filled in.
-- **The trace:** each agent joins as a chip and fills with its colour when it's done (Timetable magenta, Print cyan, Canteen yellow), with every tool call and memory read or write listed underneath; it folds to one line when the answer arrives.
-- **Shared memory in action:** "Get me lunch" uses your usual for that weekday; "Print this like last time" reuses the last settings; "My DBMS lab record is due Thursday" sets that file's deadline. The demo seeds these for Ananya.
-- **Nudges on Today** (at most two, from rules, not a model): something ready to collect, a lab within an hour and nothing printing, lunch within 30 minutes and nothing ordered, a subject below the threshold.
-- Tests: `pytest tests/test_agents.py` (mock mode, plus a fake Lyzr that checks the exact request shape and that no request carries the student's name, roll number or id).
+---
+
+## Known limits
+
+- **Payments are demo-only.** No real money moves. A `upi` provider stub is in the codebase for a real integration.
+- **Attendance data is seeded.** The app cannot connect to the college's actual attendance system without an API from the institution.
+- **Qdrant free tier:** 1 GB RAM, 4 GB disk, single node. Sufficient for a demo; needs an upgrade for production use.
+- **Lyzr free tier:** 20 credits total. The app uses `AGENT_MODE=mock` by default and switches to Lyzr only when explicitly configured.
+- **SQLite** is used for simplicity. Swap for PostgreSQL for production.
+- **Print files** are deleted from disk on collection or expiry. They are not persisted across server restarts on free-tier hosting.
+
+---
+
+## Acknowledgements
+
+Built with [Lyzr Agent Studio](https://studio.lyzr.ai), [Qdrant](https://qdrant.tech) and [Omi](https://www.omi.me) as part of the HiDevs hackathon: Stop Prompting. Code Solo Agents.
