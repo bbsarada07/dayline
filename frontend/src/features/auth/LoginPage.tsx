@@ -209,7 +209,7 @@ export function LoginPage() {
 }
 
 const ROLE_HINT = {
-  student: "Ask Dayline for lunch and a printout in one sentence, or say \"Hey Dayline\" in the Omi simulator (Profile).",
+  student: "Ask Dayline for lunch and a printout in one sentence.",
   canteen: "Watch orders arrive live, move tickets along, and hand food over with a scan.",
   print: "Work through the print queue by deadline and hand printouts over with a scan.",
 } as const;

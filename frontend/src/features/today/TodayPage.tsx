@@ -157,7 +157,7 @@ const NUDGE_TONE: Record<Nudge["agent"], { icon: typeof Printer; className: stri
   timetable: { icon: CalendarClock, className: "bg-magenta text-white" },
   print: { icon: Printer, className: "bg-cyan text-on-fill" },
   canteen: { icon: UtensilsCrossed, className: "bg-yellow text-on-fill" },
-  omi: { icon: Mic, className: "bg-hero text-hero-text" },
+  omi: { icon: Mic, className: "bg-hero text-hero-text" }, // kept for backend nudge compatibility
 };
 
 /** At most two nudges from simple rules (lunch soon and nothing ordered...), each with one action. */
