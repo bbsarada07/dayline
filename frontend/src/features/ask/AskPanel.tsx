@@ -101,7 +101,13 @@ function TryThis({ onPick, demoMode, busy }: { onPick: (example: Example) => voi
  * Ask Dayline: type, talk or tap a shortcut; watch the agents work; confirm what they
  * prepared. `onLeave` closes the surrounding sheet when a card navigates away.
  */
-export function AskPanel({ className, onLeave, autoFocus = false }: { className?: string; onLeave?: () => void; autoFocus?: boolean }) {
+export function AskPanel({ className, onLeave, autoFocus = false, shortcuts = true }: {
+  className?: string;
+  onLeave?: () => void;
+  autoFocus?: boolean;
+  /** The Print / Order food / Attendance chips. Off on Today, which has its own nudges. */
+  shortcuts?: boolean;
+}) {
   const ask = useAsk();
   const { now, demoMode } = useClock();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -213,25 +219,27 @@ export function AskPanel({ className, onLeave, autoFocus = false }: { className?
       </div>
 
       <div className="mt-3 space-y-2">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Shortcuts">
-          {(
-            [
-              ["print", "Print a file", Printer, "bg-cyan text-on-fill"],
-              ["food", "Order food", UtensilsCrossed, "bg-yellow text-on-fill"],
-              ["attendance", "Attendance", ChartNoAxesColumn, "bg-magenta text-white"],
-            ] as const
-          ).map(([kind, label, Icon, tone]) => (
-            <button
-              key={kind}
-              type="button"
-              disabled={busy}
-              onClick={() => shortcut(kind)}
-              className={cn("press inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border-2 border-edge px-3 text-13 font-extrabold shadow-hard-sm disabled:opacity-60", tone)}
-            >
-              <Icon className="size-3.5" aria-hidden /> {label}
-            </button>
-          ))}
-        </div>
+        {shortcuts ? (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Shortcuts">
+            {(
+              [
+                ["print", "Print a file", Printer, "bg-cyan text-on-fill"],
+                ["food", "Order food", UtensilsCrossed, "bg-yellow text-on-fill"],
+                ["attendance", "Attendance", ChartNoAxesColumn, "bg-magenta text-white"],
+              ] as const
+            ).map(([kind, label, Icon, tone]) => (
+              <button
+                key={kind}
+                type="button"
+                disabled={busy}
+                onClick={() => shortcut(kind)}
+                className={cn("press inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border-2 border-edge px-3 text-13 font-extrabold shadow-hard-sm disabled:opacity-60", tone)}
+              >
+                <Icon className="size-3.5" aria-hidden /> {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         {ask.attachment || upload.isPending ? (
           <p className="flex items-center justify-between gap-2 rounded-[10px] border-2 border-dashed border-edge bg-paper px-2.5 py-1.5 text-13 font-bold">

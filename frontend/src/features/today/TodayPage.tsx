@@ -214,26 +214,6 @@ function SidePanel({ items, now, attendance }: { items: DayItem[]; now: Date; at
   const below = attendance?.subjects.filter((s) => s.standing.status === "below") ?? [];
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-[18px] border-2 border-edge bg-yellow p-4 text-on-fill shadow-hard">
-        <div aria-hidden className="halftone pointer-events-none absolute -right-6 -bottom-6 size-28 rounded-full text-on-fill" />
-        <UtensilsCrossed className="relative size-7 rotate-6" aria-hidden />
-        <p className="relative mt-2 font-display text-21 font-extrabold">Hungry later?</p>
-        <p className="relative font-semibold">Order now, pick it up in your break.</p>
-        <Link to="/canteen" className={buttonVariants({ className: "relative mt-3" })}>
-          Order food <ArrowRight aria-hidden />
-        </Link>
-      </section>
-
-      <section className="relative overflow-hidden rounded-[18px] border-2 border-edge bg-cyan p-4 text-on-fill shadow-hard">
-        <div aria-hidden className="halftone pointer-events-none absolute -right-6 -bottom-6 size-28 rounded-full text-on-fill" />
-        <Printer className="relative size-7 -rotate-6" aria-hidden />
-        <p className="relative mt-2 font-display text-21 font-extrabold">Need a printout?</p>
-        <p className="relative font-semibold">Skip the queue: it's ready before your class.</p>
-        <Link to="/print" className={buttonVariants({ className: "relative mt-3" })}>
-          Print a file <ArrowRight aria-hidden />
-        </Link>
-      </section>
-
       <PanelCard title="Breaks left today">
         {gaps.length ? (
           <ul className="space-y-1.5">
@@ -395,8 +375,9 @@ export function TodayPage() {
 
       {items && shownNow ? (
         <aside className="hidden space-y-5 lg:block" aria-label="At a glance">
-          <section className="h-[min(680px,calc(100dvh-4rem))] rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard-magenta">
-            <AskPanel className="h-full" />
+          {/* Fits its content, up to the old fixed height; a long conversation scrolls inside. */}
+          <section className="flex max-h-[min(680px,calc(100dvh-4rem))] flex-col rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard-magenta">
+            <AskPanel className="min-h-0 flex-1" shortcuts={false} />
           </section>
           <SidePanel items={items} now={shownNow} attendance={attendance.data} />
         </aside>
