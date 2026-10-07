@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6366f1"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="600" fill="#0f1117"/>
+
+  <!-- Title -->
+  <text x="450" y="34" text-anchor="middle" fill="#e2e8f0" font-size="16" font-weight="bold" font-family="ui-sans-serif,system-ui,sans-serif">Dayline — Architecture</text>
+
+  <!-- ── Student layer ── -->
+  <rect x="60" y="56" width="780" height="72" rx="10" fill="#1e1e2e" stroke="#334155" stroke-width="1.5"/>
+  <text x="80" y="76" fill="#94a3b8" font-size="10" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600" letter-spacing="1">STUDENT</text>
+  <!-- Web app box -->
+  <rect x="130" y="84" width="200" height="34" rx="6" fill="#14163a" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="230" y="106" text-anchor="middle" fill="#a5b4fc" font-size="11" font-weight="600">React + Vite  (TypeScript)</text>
+  <!-- Omi box -->
+  <rect x="560" y="84" width="180" height="34" rx="6" fill="#14163a" stroke="#e6397f" stroke-width="1.5"/>
+  <text x="650" y="106" text-anchor="middle" fill="#f9a8d4" font-size="11" font-weight="600">Omi Wearable + App</text>
+
+  <!-- ── FastAPI backend ── -->
+  <rect x="60" y="172" width="780" height="210" rx="10" fill="#1a1a2e" stroke="#334155" stroke-width="1.5"/>
+  <text x="80" y="192" fill="#94a3b8" font-size="10" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600" letter-spacing="1">FASTAPI BACKEND  ·  python 3.11</text>
+
+  <!-- REST API box -->
+  <rect x="80" y="200" width="180" height="168" rx="8" fill="#0f1117" stroke="#334155" stroke-width="1"/>
+  <text x="170" y="218" text-anchor="middle" fill="#64748b" font-size="10" font-weight="700" letter-spacing=".5">REST API  /api/*</text>
+  <text x="100" y="236" fill="#cbd5e1" font-size="10">Auth · Timetable</text>
+  <text x="100" y="252" fill="#cbd5e1" font-size="10">Print · Canteen</text>
+  <text x="100" y="268" fill="#cbd5e1" font-size="10">Memory · Attendance</text>
+  <text x="100" y="284" fill="#cbd5e1" font-size="10">Omi webhooks</text>
+  <text x="100" y="300" fill="#cbd5e1" font-size="10">Agent tools</text>
+  <text x="100" y="316" fill="#cbd5e1" font-size="10">SSE / WebSocket</text>
+  <text x="100" y="344" fill="#64748b" font-size="9">SQLite · bcrypt · httpOnly</text>
+
+  <!-- Agent layer box -->
+  <rect x="290" y="200" width="530" height="168" rx="8" fill="#0f1117" stroke="#334155" stroke-width="1"/>
+  <text x="555" y="218" text-anchor="middle" fill="#64748b" font-size="10" font-weight="700" letter-spacing=".5">AGENT LAYER  (Lyzr)</text>
+
+  <!-- Orchestrator -->
+  <rect x="360" y="226" width="160" height="36" rx="6" fill="#14163a" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="440" y="248" text-anchor="middle" fill="#a5b4fc" font-size="11" font-weight="700">Orchestrator</text>
+  <text x="440" y="260" text-anchor="middle" fill="#6366f1" font-size="9">Lyzr Managerial</text>
+
+  <!-- Sub-agents -->
+  <rect x="305" y="296" width="110" height="32" rx="6" fill="#1e1e2e" stroke="#ffc400" stroke-width="1.5"/>
+  <text x="360" y="316" text-anchor="middle" fill="#fcd34d" font-size="10" font-weight="600">Timetable</text>
+
+  <rect x="435" y="296" width="110" height="32" rx="6" fill="#1e1e2e" stroke="#00b8d9" stroke-width="1.5"/>
+  <text x="490" y="316" text-anchor="middle" fill="#67e8f9" font-size="10" font-weight="600">Print</text>
+
+  <rect x="565" y="296" width="110" height="32" rx="6" fill="#1e1e2e" stroke="#e6397f" stroke-width="1.5"/>
+  <text x="620" y="316" text-anchor="middle" fill="#f9a8d4" font-size="10" font-weight="600">Canteen</text>
+
+  <rect x="695" y="296" width="110" height="32" rx="6" fill="#1e1e2e" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="750" y="316" text-anchor="middle" fill="#cbd5e1" font-size="10" font-weight="600">Listener (Omi)</text>
+
+  <!-- tool calls label -->
+  <text x="555" y="354" text-anchor="middle" fill="#475569" font-size="9">tool calls → /api/agent-tools/*</text>
+
+  <!-- Lines: orchestrator → agents -->
+  <line x1="400" y1="262" x2="360" y2="296" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+  <line x1="430" y1="262" x2="490" y2="296" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+  <line x1="460" y1="262" x2="620" y2="296" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+  <line x1="480" y1="262" x2="750" y2="296" stroke="#6366f1" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+
+  <!-- ── Data layer ── -->
+  <rect x="60" y="428" width="380" height="120" rx="10" fill="#1e1e2e" stroke="#334155" stroke-width="1.5"/>
+  <text x="80" y="448" fill="#94a3b8" font-size="10" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600" letter-spacing="1">DATA</text>
+  <!-- SQLite -->
+  <rect x="80" y="456" width="155" height="78" rx="6" fill="#0f1117" stroke="#334155" stroke-width="1"/>
+  <text x="157" y="474" text-anchor="middle" fill="#64748b" font-size="10" font-weight="700">SQLite</text>
+  <text x="100" y="490" fill="#cbd5e1" font-size="10">Students · Staff · Timetable</text>
+  <text x="100" y="505" fill="#cbd5e1" font-size="10">Orders · Print jobs</text>
+  <text x="100" y="520" fill="#cbd5e1" font-size="10">Attendance · Tap logs</text>
+  <!-- Qdrant -->
+  <rect x="250" y="456" width="175" height="78" rx="6" fill="#0f1117" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="337" y="474" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="700">Qdrant Cloud</text>
+  <text x="265" y="490" fill="#cbd5e1" font-size="10">dayline_memory collection</text>
+  <text x="265" y="505" fill="#cbd5e1" font-size="10">preferences · past actions</text>
+  <text x="265" y="520" fill="#cbd5e1" font-size="10">facts from Omi · instructions</text>
+
+  <!-- Lyzr box -->
+  <rect x="460" y="428" width="380" height="120" rx="10" fill="#1e1e2e" stroke="#334155" stroke-width="1.5"/>
+  <text x="480" y="448" fill="#94a3b8" font-size="10" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600" letter-spacing="1">LYZR STUDIO</text>
+  <rect x="480" y="456" width="340" height="78" rx="6" fill="#0f1117" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="650" y="474" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="700">5 agents  ·  Managerial + Agent types</text>
+  <text x="500" y="490" fill="#cbd5e1" font-size="10">Orchestrator · Timetable · Print · Canteen · Listener</text>
+  <text x="500" y="505" fill="#cbd5e1" font-size="10">OpenAPI tool definitions  ·  mock fallback (keyword router)</text>
+  <text x="500" y="520" fill="#64748b" font-size="9">LYZR_ORCHESTRATOR_AGENT_ID … LYZR_LISTENER_AGENT_ID</text>
+
+  <!-- ── Arrows ── -->
+  <!-- Web app ↔ backend: HTTP/SSE/WS -->
+  <line x1="230" y1="118" x2="230" y2="172" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="235" y="150" fill="#6366f1" font-size="9">HTTP · SSE · WebSocket</text>
+
+  <!-- Omi → backend webhook -->
+  <line x1="650" y1="118" x2="560" y2="172" stroke="#e6397f" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="620" y="150" fill="#e6397f" font-size="9">webhook</text>
+
+  <!-- REST API → agent layer -->
+  <line x1="260" y1="280" x2="290" y2="280" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr2)"/>
+
+  <!-- backend → SQLite -->
+  <line x1="170" y1="382" x2="157" y2="428" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- agent layer → Qdrant -->
+  <line x1="440" y1="382" x2="337" y2="428" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="355" y="415" fill="#6366f1" font-size="9">read · write</text>
+
+  <!-- agent layer → Lyzr -->
+  <line x1="555" y1="382" x2="650" y2="428" stroke="#6366f1" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="590" y="415" fill="#6366f1" font-size="9">runs on</text>
+</svg>

@@ -37,6 +37,8 @@ The result drops onto your day as a timeline of coloured passes. When you walk t
 
 ## Architecture
 
+![Dayline architecture diagram](docs/architecture.svg)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Student                                  │
@@ -327,6 +329,8 @@ The suite covers attendance maths, print cost and queue ordering, token numberin
 ---
 
 ## Demo script
+
+See [`docs/demo-script.md`](docs/demo-script.md) for the full five-minute walkthrough used in the submission video.
 
 The fastest path to see all three agents collaborate:
 

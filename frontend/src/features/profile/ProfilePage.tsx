@@ -1,4 +1,4 @@
-import { Brain, ChevronRight, CreditCard, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { Brain, ChevronRight, CreditCard, LogOut, Mic, Monitor, Moon, Sun } from "lucide-react";
 import { Link } from "react-router";
 import { Brand } from "@/app/layouts";
 import { Barcode } from "@/components/Barcode";
@@ -77,6 +77,20 @@ export function ProfilePage() {
         <ChevronRight className="size-5 shrink-0" aria-hidden />
       </Link>
 
+
+      <Link
+        to="/omi-simulator"
+        className="press flex items-center gap-3 rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard"
+      >
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-[12px] border-2 border-edge bg-magenta text-white">
+          <Mic className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-21 font-extrabold">Omi Simulator</span>
+          <span className="block text-13 font-semibold text-muted">Test voice requests and memory extraction without a device</span>
+        </span>
+        <ChevronRight className="size-5 shrink-0" aria-hidden />
+      </Link>
 
       <section className="rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard">
         <h2 id="theme-label" className="font-display text-21 font-extrabold">
