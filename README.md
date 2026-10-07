@@ -6,7 +6,7 @@ Dayline is a voice-first, memory-backed campus assistant where three AI agents �
 
 Built for the HiDevs hackathon: **Stop Prompting. Code Solo Agents.**
 
-[![Demo](https://img.shields.io/badge/Live%20Demo-Open-brightgreen)](https://your-deployed-url.com)
+[![Demo](https://img.shields.io/badge/Live%20Demo-Open-brightgreen)](https://dayline-4lxb.onrender.com)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -117,7 +117,7 @@ Omi is the hands-free entry point. Dayline registers two webhooks:
 - **`POST /api/omi/transcript`** — receives live transcript segments. When the wake phrase "hey dayline" is detected, the words after it are sent to the orchestrator in voice mode. The reply is sent back through Omi's notification API as a short spoken response.
 - **`POST /api/omi/memory`** — receives a finished conversation summary. The Listener agent (Lyzr) extracts up to five items that matter to Dayline: deadlines, things to print, food preferences, timetable changes. These are stored in Qdrant tagged `written_by = omi`. A nudge appears on the student's day if the item is actionable.
 
-Without an Omi device, the **Omi simulator** at `/omi-simulator` drives both code paths from the browser.
+Without an Omi device, the **Omi simulator** in the app drives both code paths from the browser.
 
 ### Qdrant
 
@@ -214,8 +214,6 @@ dayline/
       styles/              # Design tokens, globals
   scripts/
     setup_lyzr.py          # Creates / updates Lyzr agents idempotently
-  docs/
-    demo-script.md         # Five-minute demo walkthrough
   README.md
   DAYLINE_SPEC.md
   DAYLINE_ADDENDUM_V2.md
@@ -236,7 +234,7 @@ dayline/
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/bbsarada07/Cardiac.git
+git clone https://github.com/bbsarada07/dayline.git
 cd dayline
 cp backend/.env.example backend/.env
 ```
@@ -300,7 +298,7 @@ Once the backend is deployed and `PUBLIC_BASE_URL` is set:
 2. Copy the two webhook URLs shown there.
 3. Open the Omi app → Developer → paste each URL.
 
-Without a device, use the simulator at `/omi-simulator`.
+Without a device, the Omi simulator in the app drives both webhook paths from the browser.
 
 ---
 
@@ -329,8 +327,6 @@ The suite covers attendance maths, print cost and queue ordering, token numberin
 ---
 
 ## Demo script
-
-See [`docs/demo-script.md`](docs/demo-script.md) for the five-minute walkthrough used in the submission video.
 
 The fastest path to see all three agents collaborate:
 
