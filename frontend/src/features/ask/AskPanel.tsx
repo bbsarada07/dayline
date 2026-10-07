@@ -18,17 +18,22 @@ const MAX_BYTES = 20 * 1024 * 1024;
 
 type Example = { text: string; why: string; sample?: boolean };
 const EXAMPLES: Example[] = [
-  { text: "Can I skip DBMS tomorrow?", why: "Timetable works it out from your real attendance." },
-  { text: "Get me lunch and print this before my next class", why: "Canteen, Print and Timetable together. Lunch is your usual, from memory.", sample: true },
-  { text: "Print this like last time", why: "Print remembers how you printed, and when this file is due.", sample: true },
+  { text: "Get me lunch and print this before my next class", why: "Canteen, Print and Timetable together.", sample: true },
+  { text: "Can I skip DBMS tomorrow?", why: "Worked out from your real attendance." },
+  { text: "Order my usual", why: "Your usual for today, from memory." },
 ];
 
-function Bubble({ message, now, onLeave }: { message: ChatMessage; now: Date | null; onLeave?: () => void }) {
+function Bubble({ message, now, onLeave, primaryProposal }: {
+  message: ChatMessage;
+  now: Date | null;
+  onLeave?: () => void;
+  primaryProposal: string | null;
+}) {
   if (message.role === "user") {
     return (
       <li className="ml-auto max-w-[85%] rounded-[16px] rounded-br-[4px] border-2 border-edge bg-ink px-3.5 py-2.5 text-paper shadow-hard-sm">
         {message.via === "omi" ? (
-          <p className="mb-1 flex items-center gap-1 text-[12px] font-extrabold tracking-wide uppercase opacity-80">
+          <p className="mb-1 flex items-center gap-1 text-13 font-extrabold tracking-wide uppercase opacity-80">
             <Mic className="size-3.5" aria-hidden /> Said to Omi
           </p>
         ) : null}
@@ -44,7 +49,7 @@ function Bubble({ message, now, onLeave }: { message: ChatMessage; now: Date | n
   const finished = message.status !== "streaming";
   return (
     <li className="max-w-full space-y-2.5">
-      <Trace events={message.events} finished={finished} />
+      <Trace events={message.events} finished={finished} mode={message.mode} via={message.via} />
       {message.text ? (
         <p
           className={cn(
@@ -59,7 +64,7 @@ function Bubble({ message, now, onLeave }: { message: ChatMessage; now: Date | n
       {message.proposals.length ? (
         <div className="space-y-2.5">
           {message.proposals.map((p) => (
-            <ProposalCard key={p.id} proposal={p} now={now} onLeave={onLeave} />
+            <ProposalCard key={p.id} proposal={p} now={now} onLeave={onLeave} primary={p.id === primaryProposal} />
           ))}
         </div>
       ) : null}
@@ -68,15 +73,13 @@ function Bubble({ message, now, onLeave }: { message: ChatMessage; now: Date | n
 }
 
 function TryThis({ onPick, demoMode, busy }: { onPick: (example: Example) => void; demoMode: boolean; busy: boolean }) {
-  const shown = EXAMPLES.filter((e) => demoMode || !e.sample);
   return (
     <section aria-labelledby="try-this" className="relative overflow-hidden rounded-[16px] border-2 border-edge bg-paper p-3.5">
-      <div aria-hidden className="halftone pointer-events-none absolute -top-8 -right-8 size-28 rounded-full text-magenta" />
       <h3 id="try-this" className="relative flex items-center gap-1.5 font-display text-17 font-extrabold">
         <Sparkles className="size-4" aria-hidden /> Try this
       </h3>
       <ul className="relative mt-2 space-y-2">
-        {shown.map((example) => (
+        {EXAMPLES.map((example) => (
           <li key={example.text}>
             <button
               type="button"
@@ -86,7 +89,7 @@ function TryThis({ onPick, demoMode, busy }: { onPick: (example: Example) => voi
             >
               <span className="block font-bold">“{example.text}”</span>
               <span className="mt-0.5 block text-13 font-semibold text-muted">
-                {example.sample ? "Attaches a sample PDF. " : ""}
+                {example.sample && demoMode ? "Attaches a sample PDF. " : ""}
                 {example.why}
               </span>
             </button>
@@ -153,8 +156,8 @@ export function AskPanel({ className, onLeave, autoFocus = false, shortcuts = tr
   };
 
   const pickExample = (example: Example) => {
-    if (!example.sample) {
-      ask.send(example.text);
+    if (!example.sample || !demoMode) {
+      ask.send(example.text); // outside the demo, Print asks for a file
       return;
     }
     sample.mutate(undefined, { onSuccess: (file) => ask.send(example.text, { attachment: file }) });
@@ -170,13 +173,15 @@ export function AskPanel({ className, onLeave, autoFocus = false, shortcuts = tr
   };
 
   const busy = ask.busy || upload.isPending || sample.isPending;
+  // The first card still waiting to be paid holds the screen's one primary button.
+  const waiting = ask.messages.flatMap((m) => m.proposals).find((p) => !ask.confirmed[p.id])?.id ?? null;
   const problem = pickError ?? (upload.isError ? errorMessage(upload.error) : sample.isError ? errorMessage(sample.error) : listen.error);
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 font-display text-21 font-extrabold">
-          <span aria-hidden className="relative inline-flex size-7 -rotate-6 items-center justify-center rounded-[8px] border-2 border-edge bg-hero">
+          <span aria-hidden className="relative inline-flex size-7 items-center justify-center rounded-[8px] border-2 border-edge bg-hero">
             <span className="size-2.5 rounded-full bg-magenta" />
           </span>
           Ask Dayline
@@ -212,7 +217,7 @@ export function AskPanel({ className, onLeave, autoFocus = false, shortcuts = tr
         ) : (
           <ol className="space-y-4 pb-1" aria-label="Conversation">
             {ask.messages.map((message) => (
-              <Bubble key={message.id} message={message} now={now} onLeave={onLeave} />
+              <Bubble key={message.id} message={message} now={now} onLeave={onLeave} primaryProposal={waiting} />
             ))}
           </ol>
         )}
@@ -317,11 +322,11 @@ export function AskPanel({ className, onLeave, autoFocus = false, shortcuts = tr
               <Mic aria-hidden />
             </Button>
           ) : null}
-          <Button type="submit" size="icon" disabled={busy || !ask.draft.trim()} aria-label="Send">
+          <Button type="submit" size="icon" variant={waiting ? "secondary" : "primary"} disabled={busy || !ask.draft.trim()} aria-label="Send">
             <ArrowUp aria-hidden />
           </Button>
         </form>
-        <p className="text-[12px] font-semibold text-muted">
+        <p className="text-13 font-semibold text-muted">
           Agents prepare; you confirm. Nothing is paid for until you press confirm.
           {last && last.role === "assistant" && last.agents.length ? (
             <span className="sr-only"> Last answer from {last.agents.map((a) => AGENT[a].label).join(", ")}.</span>

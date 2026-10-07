@@ -18,6 +18,8 @@ export type ChatMessage = {
   refused?: boolean;
   /** Said to the Omi wearable rather than typed here. */
   via?: "omi";
+  /** How the run was answered, from its "run" event (unknown for older history). */
+  mode?: "lyzr" | "mock";
 };
 
 type AskState = {
@@ -152,6 +154,7 @@ export function AskProvider({ children }: { children: ReactNode }) {
         },
         (event) => {
           if (event.type === "run") {
+            update(replyId, (m) => ({ ...m, mode: event.mode }));
             conversation.current = event.conversation_id;
             write(CONVERSATION_KEY, event.conversation_id, session);
             return;

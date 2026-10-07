@@ -184,7 +184,7 @@ export function CollectDesk({ station }: { station: "canteen" | "print" }) {
     <section aria-labelledby={`desk-${station}`} className="rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={`desk-${station}`} className="flex items-center gap-2 font-display text-28 font-extrabold">
-          <ScanBarcode className="size-8 -rotate-6" aria-hidden /> Collect
+          <ScanBarcode className="size-8" aria-hidden /> Collect
         </h2>
         <Button variant="secondary" onClick={toggleSound} aria-pressed={sound}>
           {sound ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />} {sound ? "Sound on" : "Sound off"}
@@ -225,7 +225,7 @@ export function CollectDesk({ station }: { station: "canteen" | "print" }) {
                 id={`sim-${station}`}
                 value={simStudent}
                 onChange={(e) => setSimStudent(e.target.value)}
-                className="min-h-12 min-w-0 flex-1 rounded-button border-2 border-edge bg-sheet px-2 text-15 font-bold text-ink"
+                className="min-h-12 min-w-48 flex-1 rounded-button border-2 border-edge bg-sheet px-2 text-15 font-bold text-ink"
               >
                 <option value="">Choose a student…</option>
                 {candidates.data?.students.map((s) => (

@@ -26,7 +26,7 @@ export function AskDock() {
         onClick={() => ask.openSheet()}
         className="press fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 mx-auto flex min-h-13 max-w-lg items-center gap-2.5 rounded-[16px] border-2 border-edge bg-sheet px-3 text-left shadow-hard lg:hidden"
       >
-        <span aria-hidden className="relative inline-flex size-8 shrink-0 -rotate-6 items-center justify-center rounded-[9px] border-2 border-edge bg-hero">
+        <span aria-hidden className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-[9px] border-2 border-edge bg-hero">
           <span className={cn("size-2.5 rounded-full bg-magenta", working && "pulse-dot")} />
         </span>
         <span className="min-w-0 flex-1 truncate font-semibold text-muted">

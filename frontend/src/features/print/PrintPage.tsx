@@ -1,14 +1,15 @@
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import { useLocation } from "react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleAlert, FileText, Minus, Plus, Printer, Scissors, TriangleAlert, Upload } from "lucide-react";
+import { CircleAlert, CircleCheck, FileText, Minus, Plus, Printer, Scissors, TriangleAlert, Upload } from "lucide-react";
+import { Collapsed, PageHeading } from "@/components/PageParts";
 import { EmptyState, ErrorState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, errorMessage } from "@/lib/api";
 import { useClock } from "@/lib/clock";
-import { localInputs, money, plural } from "@/lib/format";
+import { localInputs, money, plural, sameDay } from "@/lib/format";
 import type { PrintJob, PrintQuote, PrintUpload } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { PrintPrefill } from "@/features/ask/ProposalCard";
@@ -25,7 +26,7 @@ function Step({ n, title, children, done = false }: { n: number; title: string; 
         <span
           aria-hidden
           className={cn(
-            "flex size-9 shrink-0 -rotate-6 items-center justify-center rounded-[10px] border-2 border-edge font-display text-17 font-extrabold shadow-hard-sm",
+            "flex size-9 shrink-0 items-center justify-center rounded-[10px] border-2 border-edge font-display text-17 font-extrabold shadow-hard-sm",
             done ? "bg-ink text-paper" : "bg-cyan text-on-fill",
           )}
         >
@@ -120,8 +121,7 @@ function DropZone({ onPicked, busy, inputRef }: {
         dragging && "bg-cyan/20",
       )}
     >
-      <div aria-hidden className="halftone pointer-events-none absolute -top-10 -left-10 size-40 rounded-full text-cyan" />
-      <span className="relative mx-auto flex size-16 rotate-6 items-center justify-center rounded-[16px] border-2 border-edge bg-cyan text-on-fill shadow-hard">
+      <span className="relative mx-auto flex size-16 items-center justify-center rounded-[16px] border-2 border-edge bg-cyan text-on-fill shadow-hard">
         <Upload className="size-8" aria-hidden />
       </span>
       <p className="relative mt-4 font-display text-21 font-extrabold">Drop your PDF here</p>
@@ -194,6 +194,7 @@ function NewJob({ now, onCreated, inputRef, prefill }: {
   const [doubleSided, setDoubleSided] = useState(prefill?.double_sided ?? false);
   const [deadline, setDeadline] = useState<string | null>(prefill?.deadline ?? null); // "YYYY-MM-DDTHH:mm" college time; null = suggested
   const [pickError, setPickError] = useState<string | null>(null);
+  const [pickedName, setPickedName] = useState<string | null>(null); // shown while the PDF uploads
 
   const upload = useMutation({
     mutationFn: (picked: File) => {
@@ -203,11 +204,9 @@ function NewJob({ now, onCreated, inputRef, prefill }: {
     },
     onSuccess: (data) => {
       setFile(data);
-      setCopies(1);
-      setColor(false);
-      setDoubleSided(false);
-      setDeadline(null);
+      setPickedName(null);
     },
+    onError: () => setPickedName(null),
   });
 
   const onPicked = (picked: File) => {
@@ -217,6 +216,8 @@ function NewJob({ now, onCreated, inputRef, prefill }: {
       setPickError("That PDF is bigger than 20 MB. Compress it or split it, then try again.");
       return;
     }
+    setFile(null);
+    setPickedName(picked.name);
     upload.mutate(picked);
   };
 
@@ -251,7 +252,7 @@ function NewJob({ now, onCreated, inputRef, prefill }: {
     </p>
   ) : null;
 
-  if (!file) {
+  if (!file && !upload.isPending) {
     return (
       <Step n={1} title="Pick a PDF">
         {fileInput}
@@ -270,12 +271,14 @@ function NewJob({ now, onCreated, inputRef, prefill }: {
       {fileInput}
       <Step n={1} title="Pick a PDF" done>
         <div className="flex items-center gap-3 rounded-[14px] border-2 border-edge bg-paper p-3">
-          <span className="flex size-11 shrink-0 -rotate-6 items-center justify-center rounded-[10px] border-2 border-edge bg-cyan text-on-fill">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-[10px] border-2 border-edge bg-cyan text-on-fill">
             <FileText className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-extrabold" title={file.original_filename}>{file.original_filename}</p>
-            <p className="text-13 font-semibold text-muted">{plural(file.pages, "page")}</p>
+            <p className="truncate font-extrabold" title={file?.original_filename ?? pickedName ?? ""}>
+              {file?.original_filename ?? pickedName}
+            </p>
+            <p className="text-13 font-semibold text-muted">{file ? plural(file.pages, "page") : "Uploading and counting pages…"}</p>
           </div>
           <Button variant="secondary" onClick={() => inputRef.current?.click()} disabled={pay.isPending || upload.isPending}>
             {upload.isPending ? "Uploading…" : "Change file"}
@@ -348,7 +351,7 @@ function NewJob({ now, onCreated, inputRef, prefill }: {
         </section>
 
         <div className="mt-5">
-          <p className="inline-block -rotate-1 rounded-[6px] border-2 border-dashed border-edge bg-paper px-2.5 py-1 text-13 font-extrabold">
+          <p className="inline-block rounded-[6px] border-2 border-dashed border-edge bg-paper px-2.5 py-1 text-13 font-extrabold">
             Demo payment — no money moves
           </p>
           <Button size="lg" className="mt-3 w-full text-21" disabled={!q || quote.isFetching || pay.isPending} onClick={() => pay.mutate()}>
@@ -367,6 +370,43 @@ function NewJob({ now, onCreated, inputRef, prefill }: {
   );
 }
 
+const ACTIVE: PrintJob["status"][] = ["queued", "printing", "ready"];
+
+/** Jobs on the way first, then finished ones folded away ("Earlier today", "Past jobs"). */
+function JobGroups({ jobs, now, onOpen }: { jobs: PrintJob[]; now: Date; onOpen: (id: number) => void }) {
+  const active = jobs.filter((j) => ACTIVE.includes(j.status));
+  const finished = jobs.filter((j) => !ACTIVE.includes(j.status));
+  const finishedOn = (j: PrintJob) => j.collected_at ?? j.deadline;
+  const earlierToday = finished.filter((j) => sameDay(finishedOn(j), now));
+  const past = finished.filter((j) => !sameDay(finishedOn(j), now));
+  const ticket = (job: PrintJob) => (
+    <button
+      key={job.id}
+      type="button"
+      className="block w-full rounded-surface text-left"
+      onClick={() => onOpen(job.id)}
+      aria-label={`${job.code}, ${job.original_filename}. Show details`}
+    >
+      <PrintPass job={job} now={now} />
+    </button>
+  );
+  return (
+    <div className="space-y-4">
+      {active.length ? (
+        <ul className="space-y-5">
+          {active.map((job) => (
+            <li key={job.id}>{ticket(job)}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="font-semibold text-muted">Nothing printing right now.</p>
+      )}
+      <Collapsed title="Earlier today" count={earlierToday.length}>{earlierToday.map(ticket)}</Collapsed>
+      <Collapsed title="Past jobs" count={past.length}>{past.map(ticket)}</Collapsed>
+    </div>
+  );
+}
+
 export function PrintPage() {
   const { now } = useClock();
   const location = useLocation();
@@ -380,22 +420,26 @@ export function PrintPage() {
 
   return (
     <div>
-      <header className="relative overflow-hidden rounded-[24px] border-2 border-edge bg-cyan px-5 py-6 text-on-fill shadow-hard-lg sm:px-7">
-        <div aria-hidden className="halftone pointer-events-none absolute -top-10 -right-10 size-52 rounded-full text-on-fill" />
-        <Printer aria-hidden className="absolute right-5 bottom-4 size-20 rotate-12 opacity-20 sm:size-28" />
-        <h1 className="relative font-display text-40 leading-none font-extrabold sm:text-64">Print</h1>
-        <p className="relative mt-2 max-w-md text-17 font-semibold">
-          Send a PDF to the print shop. It's ready before your class, and you skip the queue.
-        </p>
-      </header>
+      <PageHeading
+        title="Print"
+        subtitle="Printed before your class."
+        icon={Printer}
+        className="bg-cyan text-on-fill"
+      />
 
-      <div className="mt-7 grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <section aria-labelledby="new-job" className="rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard sm:p-6">
           <h2 id="new-job" className="sr-only">Print a file</h2>
           {created ? (
-            <p role="status" className="mb-5 rounded-[12px] border-2 border-edge bg-paper p-3 font-bold">
-              {created.code} is in the queue. You'll get a notice here when it's ready.
-            </p>
+            <div role="status" className="mb-5 flex items-start gap-3 rounded-[14px] border-2 border-edge bg-paper p-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] border-2 border-edge bg-cyan text-on-fill">
+                <CircleCheck className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="font-extrabold">{created.code} is in the queue</p>
+                <p className="text-13 font-semibold text-muted">You'll get a notice here when it's ready.</p>
+              </div>
+            </div>
           ) : null}
           {now ? <NewJob key={location.key} now={now} inputRef={fileInput} prefill={prefill} onCreated={(job) => setCreated(job)} /> : <Skeleton className="h-56" />}
         </section>
@@ -414,25 +458,12 @@ export function PrintPage() {
               <EmptyState
                 icon={Printer}
                 title="No print jobs yet"
-                action={<Button onClick={() => fileInput.current?.click()}>Choose a PDF</Button>}
+                action={<Button variant="secondary" onClick={() => fileInput.current?.click()}>Choose a PDF</Button>}
               >
                 Upload a PDF and the print shop will have it ready before your class.
               </EmptyState>
             ) : (
-              <ul className="space-y-5">
-                {list.map((job, index) => (
-                  <li key={job.id} className={cn("transition-transform hover:rotate-0", index % 2 ? "rotate-1" : "-rotate-1")}>
-                    <button
-                      type="button"
-                      className="block w-full rounded-surface text-left"
-                      onClick={() => setSelected(job.id)}
-                      aria-label={`${job.code}, ${job.original_filename}. Show details`}
-                    >
-                      <PrintPass job={job} now={now} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <JobGroups jobs={list} now={now} onOpen={setSelected} />
             )}
           </div>
         </section>

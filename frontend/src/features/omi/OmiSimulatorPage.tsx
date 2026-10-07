@@ -214,7 +214,7 @@ function SpeechPanel({ status }: { status: OmiStatus }) {
       </div>
 
       {calls.length ? (
-        <ol className="space-y-1 rounded-[12px] border-2 border-dashed border-line p-2.5 font-mono text-[12px]" aria-label="Webhook calls sent">
+        <ol className="space-y-1 rounded-[12px] border-2 border-dashed border-line p-2.5 font-mono text-13" aria-label="Webhook calls sent">
           {calls.map((call) => (
             <li key={call.id} className="flex flex-wrap gap-x-2">
               <span className="text-muted">POST transcript</span>
@@ -241,7 +241,7 @@ function SpeechPanel({ status }: { status: OmiStatus }) {
       {lastBody ? (
         <details className="text-13">
           <summary className="cursor-pointer font-bold text-muted">The last call's body (Omi's format)</summary>
-          <pre className="mt-1 overflow-x-auto rounded-[10px] bg-tint p-2.5 font-mono text-[12px]">{JSON.stringify(lastBody, null, 2)}</pre>
+          <pre className="mt-1 overflow-x-auto rounded-[10px] bg-tint p-2.5 font-mono text-13">{JSON.stringify(lastBody, null, 2)}</pre>
         </details>
       ) : null}
     </section>
@@ -365,7 +365,7 @@ function ConversationPanel({ status }: { status: OmiStatus }) {
       {lastBody ? (
         <details className="text-13">
           <summary className="cursor-pointer font-bold text-muted">The call's body (Omi's format)</summary>
-          <pre className="mt-1 max-h-64 overflow-auto rounded-[10px] bg-tint p-2.5 font-mono text-[12px]">{JSON.stringify(lastBody, null, 2)}</pre>
+          <pre className="mt-1 max-h-64 overflow-auto rounded-[10px] bg-tint p-2.5 font-mono text-13">{JSON.stringify(lastBody, null, 2)}</pre>
         </details>
       ) : null}
     </section>
@@ -385,8 +385,7 @@ export function OmiSimulatorPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <header className="relative overflow-hidden rounded-[24px] border-2 border-edge bg-hero px-5 py-6 text-hero-text shadow-hard-lg sm:px-7">
-        <div aria-hidden className="halftone pointer-events-none absolute -top-12 -right-12 size-56 rounded-full text-magenta" />
-        <span className="relative inline-block -rotate-2 rounded-[8px] border-2 border-hero-text bg-yellow px-2 py-0.5 text-13 font-extrabold text-on-fill">
+        <span className="relative inline-block rounded-[8px] border-2 border-hero-text bg-yellow px-2 py-0.5 text-13 font-extrabold text-on-fill">
           Simulator · no device needed
         </span>
         <h1 className="relative mt-3 font-display text-40 leading-none font-extrabold sm:text-64">Omi simulator</h1>

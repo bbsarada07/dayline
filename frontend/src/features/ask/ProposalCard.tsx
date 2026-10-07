@@ -30,7 +30,13 @@ function when(value: string, now: Date | null): string {
  * Something an agent prepared: dashed until the student confirms and pays through the
  * normal endpoint. Agents never spend money themselves.
  */
-export function ProposalCard({ proposal, now, onLeave }: { proposal: Proposal; now: Date | null; onLeave?: () => void }) {
+export function ProposalCard({ proposal, now, onLeave, primary = true }: {
+  proposal: Proposal;
+  now: Date | null;
+  onLeave?: () => void;
+  /** Only one card's "Confirm and pay" is the primary button at a time. */
+  primary?: boolean;
+}) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const { confirmed, markConfirmed } = useAsk();
@@ -147,7 +153,7 @@ export function ProposalCard({ proposal, now, onLeave }: { proposal: Proposal; n
         </p>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button onClick={() => confirm.mutate()} disabled={confirm.isPending}>
+          <Button variant={primary ? "primary" : "secondary"} onClick={() => confirm.mutate()} disabled={confirm.isPending}>
             {confirm.isPending ? "Paying…" : `Confirm and pay ${money(cost)}`}
           </Button>
           <Button variant="secondary" onClick={edit} disabled={confirm.isPending}>

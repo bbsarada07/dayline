@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { LazyMotion, domAnimation, m, useReducedMotion } from "framer-motion";
 import {
-  Brain, BrainCircuit, CalendarClock, ChevronDown, CircleAlert, Info, Printer, Sparkles, UtensilsCrossed, Wrench,
+  Brain, BrainCircuit, CalendarClock, ChevronDown, CircleAlert, Info, Mic, Printer, Sparkles, UtensilsCrossed, Wrench,
   type LucideIcon,
 } from "lucide-react";
-import type { AgentName, TraceEvent } from "@/lib/types";
+import { api } from "@/lib/api";
+import type { AgentName, MemoryList, MemoryStatus, TraceEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const AGENT: Record<AgentName, { label: string; icon: LucideIcon; fill: string; text: string; dot: string }> = {
@@ -56,33 +58,85 @@ function AgentChip({ agent, phase }: { agent: AgentName; phase: Phase }) {
   );
 }
 
-function stepView(event: TraceEvent): { icon: LucideIcon; text: string; agent?: AgentName; tone?: "alert" | "muted" } | null {
+type Step = { icon: LucideIcon; system: string | null; text: string; agent?: AgentName; tone?: "alert" | "muted" };
+
+/** What the step's labels can rely on: all of it comes from the run or the server, nothing is guessed. */
+type Systems = {
+  mode?: "lyzr" | "mock"; // from the run itself; unknown for older history
+  fellBack: (agent: AgentName) => boolean; // the trace has a note that the offline router answered for it
+  store?: MemoryStatus["backend"];
+  fromOmi: Set<string>; // memory texts written by Omi
+};
+
+function agentSystem(agent: AgentName, sys: Systems): string {
+  const name = agent === "orchestrator" ? "Orchestrator" : AGENT[agent].label;
+  if (sys.mode === "mock" || (sys.mode === "lyzr" && sys.fellBack(agent))) return `Offline router · ${name}`;
+  if (sys.mode === "lyzr") return `Lyzr · ${name} agent`;
+  return `${name} agent`;
+}
+
+function memorySystem(action: "read" | "write", count: number, items: string[] | undefined, sys: Systems): string {
+  const store = sys.store === "temporary" ? "Temporary memory" : sys.store === "qdrant" ? "Qdrant" : "Memory";
+  const omi = (items ?? []).filter((text) => sys.fromOmi.has(text)).length;
+  return `${store} ${action} · ${count}${omi ? ` (${omi} from Omi)` : ""}`;
+}
+
+function stepView(event: TraceEvent, sys: Systems): Step | null {
   switch (event.type) {
     case "agent_started":
-      return event.agent === "orchestrator" ? null : { icon: AGENT[event.agent].icon, text: event.label, agent: event.agent };
+      return event.agent === "orchestrator"
+        ? null
+        : { icon: AGENT[event.agent].icon, system: agentSystem(event.agent, sys), text: event.label, agent: event.agent };
     case "tool_called":
       return {
         icon: event.ok ? Wrench : CircleAlert,
-        text: event.for ? `${event.label} (for ${AGENT[event.for].label})` : event.label,
+        // The agent that asked for the tool decided to call it; the label names whose data it read.
+        system: agentSystem(event.for ?? event.agent, sys),
+        text: event.for ? `${event.label} (${AGENT[event.agent].label} data)` : event.label,
         agent: event.agent,
         tone: event.ok ? undefined : "alert",
       };
     case "memory_read":
-      return { icon: Brain, text: event.label, agent: event.agent };
+      return { icon: Brain, system: memorySystem("read", event.count, event.items, sys), text: event.label, agent: event.agent };
     case "memory_write":
-      return { icon: BrainCircuit, text: event.label, agent: event.agent };
+      return { icon: BrainCircuit, system: memorySystem("write", 1, [event.text], sys), text: event.label, agent: event.agent };
     case "note":
-      return { icon: Info, text: event.text, tone: "muted" };
+      return { icon: Info, system: null, text: event.text, tone: "muted" };
     default:
       return null;
   }
 }
 
+function useSystems(events: TraceEvent[], mode: Systems["mode"]): Systems {
+  const reads = events.some((e) => e.type === "memory_read" && e.items?.length);
+  const status = useQuery({ queryKey: ["memory", "status"], queryFn: () => api<MemoryStatus>("/memory/status"), staleTime: 60_000 });
+  const list = useQuery({ queryKey: ["memory", "list"], queryFn: () => api<MemoryList>("/memory"), enabled: reads });
+  const notes = events.flatMap((e) => (e.type === "note" ? [e.text] : []));
+  const budget = notes.some((t) => /budget/i.test(t));
+  return {
+    mode,
+    fellBack: (agent) => budget || notes.some((t) => /offline router/i.test(t) && t.includes(`The ${AGENT[agent].label} agent`)),
+    store: status.data?.backend,
+    fromOmi: new Set((list.data?.memories ?? []).filter((m) => m.written_by === "omi").map((m) => m.text)),
+  };
+}
+
 /** The run, live: agent chips and each step. Folds to one line when the answer arrives. */
-export function Trace({ events, finished }: { events: TraceEvent[]; finished: boolean }) {
-  const [open, setOpen] = useState(false);
+export function Trace({ events, finished, mode, via }: {
+  events: TraceEvent[];
+  finished: boolean;
+  /** How the run was answered (from its "run" event). */
+  mode?: "lyzr" | "mock";
+  /** The request was spoken to Omi. */
+  via?: "omi";
+}) {
+  const [open, setOpen] = useState(true); // the steps stay open when the answer arrives; the student can fold them
   const phases = agentPhases(events, finished);
-  const steps = events.map(stepView).filter((s) => s !== null);
+  const sys = useSystems(events, mode);
+  const steps: Step[] = [
+    ...(via === "omi" ? [{ icon: Mic, system: "Omi", text: "Heard on your wearable" }] : []),
+    ...events.map((e) => stepView(e, sys)).filter((s) => s !== null),
+  ];
   const showSteps = !finished || open;
   if (phases.length === 0 && steps.length === 0) {
     return finished ? null : <p className="pulse-dot text-13 font-bold text-muted">Thinking…</p>;
@@ -112,7 +166,11 @@ export function Trace({ events, finished }: { events: TraceEvent[]; finished: bo
               <li key={i} className={cn("flex items-start gap-2 text-13 font-semibold", step.tone === "alert" ? "text-alert-text" : "text-muted")}>
                 <span aria-hidden className={cn("mt-1.5 size-2 shrink-0 rounded-full border border-edge", step.agent ? AGENT[step.agent].dot : "bg-line")} />
                 <step.icon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                <span className="min-w-0 break-words">{step.text}</span>
+                <span className="min-w-0 break-words">
+                  {step.system ? <span className="font-extrabold text-ink">{step.system}</span> : null}
+                  {step.system ? " · " : null}
+                  {step.text}
+                </span>
               </li>
             ))}
           </ol>

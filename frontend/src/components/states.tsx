@@ -27,8 +27,7 @@ export function ErrorState({ error, onRetry, title = "This didn't load" }: { err
 export function EmptyState({ icon: Icon, title, children, action }: { icon: LucideIcon; title: string; children: ReactNode; action?: ReactNode }) {
   return (
     <div className="relative overflow-hidden rounded-surface border-2 border-dashed border-edge bg-sheet p-6 text-center">
-      <div aria-hidden className="halftone pointer-events-none absolute -top-6 -right-6 size-28 rounded-full text-magenta" />
-      <span className="relative mx-auto flex size-14 -rotate-6 items-center justify-center rounded-[14px] border-2 border-edge bg-paper shadow-hard-sm">
+      <span className="relative mx-auto flex size-14 items-center justify-center rounded-[14px] border-2 border-edge bg-paper shadow-hard-sm">
         <Icon className="size-7" aria-hidden />
       </span>
       <p className="relative mt-4 font-display text-21 font-extrabold">{title}</p>

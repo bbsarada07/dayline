@@ -113,7 +113,7 @@ export function CopyField({ label, value, hint }: { label: string; value: string
       <p className="text-13 font-extrabold">{label}</p>
       {hint ? <p className="text-13 font-semibold text-muted">{hint}</p> : null}
       <div className="mt-1 flex items-stretch gap-2">
-        <code className="min-w-0 flex-1 overflow-x-auto rounded-[10px] border-2 border-edge bg-paper px-2.5 py-2 font-mono text-[12px] whitespace-nowrap select-all">
+        <code className="min-w-0 flex-1 overflow-x-auto rounded-[10px] border-2 border-edge bg-paper px-2.5 py-2 font-mono text-13 whitespace-nowrap select-all">
           {value}
         </code>
         <button

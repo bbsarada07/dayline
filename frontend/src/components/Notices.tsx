@@ -61,7 +61,7 @@ export function Notices() {
         >
           <span
             className={cn(
-              "flex size-11 shrink-0 -rotate-6 items-center justify-center rounded-[12px] border-2 border-edge text-on-fill",
+              "flex size-11 shrink-0 items-center justify-center rounded-[12px] border-2 border-edge text-on-fill",
               notice.tone === "cyan" ? "bg-cyan" : notice.tone === "hero" ? "bg-hero text-hero-text" : "bg-yellow",
             )}
             aria-hidden

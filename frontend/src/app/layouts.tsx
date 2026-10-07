@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router";
 import { Brain, CalendarClock, ChartNoAxesColumn, LogOut, Printer, User, UtensilsCrossed, type LucideIcon } from "lucide-react";
-import { DemoBanner } from "@/components/DemoBanner";
+import { DemoChip } from "@/components/DemoControls";
 import { LiveBadge } from "@/components/LiveBadge";
 import { Notices } from "@/components/Notices";
 import { Button } from "@/components/ui/button";
@@ -48,12 +48,11 @@ export function StudentLayout() {
   return (
     <AskProvider>
       <div className="min-h-dvh">
-        <DemoBanner />
         <Notices />
         <div className="lg:flex">
-          <aside className="hidden text-hero-text lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:bg-hero lg:px-4 lg:py-6">
+          <aside className="hidden text-hero-text lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:bg-hero lg:px-4 lg:py-6">
             <Brand onDark className="px-2 text-28" />
-            <nav aria-label="Main" className="mt-10 flex flex-col gap-2">
+            <nav aria-label="Main" className="mt-8 flex flex-col gap-2">
               {STUDENT_NAV.map((item) => (
                 <NavLink
                   key={item.to}
@@ -71,10 +70,14 @@ export function StudentLayout() {
                 </NavLink>
               ))}
             </nav>
-            <div className="mt-auto rounded-[14px] border-2 border-hero-muted/40 p-3">
-              <p className="truncate font-bold">{me?.name}</p>
-              <p className="text-13 text-hero-muted">{me?.kind === "student" ? me.roll_no : null}</p>
-              <LiveBadge className="mt-2" onDark />
+            {/* Pushed to the bottom; on a short window the rail scrolls rather than clipping it. */}
+            <div className="mt-auto space-y-3 pt-6">
+              <DemoChip onDark stacked />
+              <div className="rounded-[14px] border-2 border-hero-muted/40 p-3">
+                <p className="truncate font-bold">{me?.name}</p>
+                <p className="text-13 text-hero-muted">{me?.kind === "student" ? me.roll_no : null}</p>
+                <LiveBadge className="mt-2" onDark />
+              </div>
             </div>
           </aside>
           <main className="mx-auto w-full max-w-6xl min-w-0 px-4 pt-4 pb-52 sm:px-6 lg:px-10 lg:pt-8 lg:pb-12">
@@ -114,7 +117,6 @@ export function StaffLayout() {
   const logout = useLogout();
   return (
     <div className="min-h-dvh">
-      <DemoBanner />
       <header className="bg-hero text-hero-text">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Brand onDark />
@@ -126,6 +128,7 @@ export function StaffLayout() {
             </Button>
           </div>
         </div>
+        <DemoChip onDark className="mx-auto mb-3 w-fit max-w-[calc(100%-2rem)]" />
       </header>
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         <Outlet />

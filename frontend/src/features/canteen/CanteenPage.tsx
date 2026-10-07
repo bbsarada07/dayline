@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleAlert, Clock, Minus, Plus, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { Collapsed, PageHeading } from "@/components/PageParts";
 import { EmptyState, ErrorState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, errorMessage } from "@/lib/api";
 import { useClock } from "@/lib/clock";
-import { money, plural, timeOfDay } from "@/lib/format";
+import { money, plural, sameDay, timeOfDay } from "@/lib/format";
 import { useMediaQuery } from "@/lib/media";
 import type { CanteenQuote, MenuData, MenuItem, Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -72,7 +73,7 @@ function MenuCard({ item, qty, onChange }: { item: MenuItem; qty: number; onChan
       ) : qty > 0 ? (
         <Stepper name={item.name} qty={qty} max={max} onChange={onChange} />
       ) : (
-        <Button className="shrink-0" onClick={() => onChange(1)}>
+        <Button variant="secondary" className="shrink-0" onClick={() => onChange(1)}>
           <Plus aria-hidden /> Add
         </Button>
       )}
@@ -122,7 +123,7 @@ function CartPanel({ cart, menuById, setQty, pickup, setPickup, onPaid }: {
   if (lines.length === 0) {
     return (
       <div className="rounded-[18px] border-2 border-dashed border-edge bg-sheet p-5 text-center">
-        <ShoppingBag className="mx-auto size-8 -rotate-6" aria-hidden />
+        <ShoppingBag className="mx-auto size-8" aria-hidden />
         <p className="mt-2 font-display text-21 font-extrabold">Your cart is empty</p>
         <p className="text-muted">Add food from the menu. You pick it up when you're free.</p>
       </div>
@@ -215,7 +216,7 @@ function CartPanel({ cart, menuById, setQty, pickup, setPickup, onPaid }: {
       </section>
 
       <div>
-        <p className="inline-block -rotate-1 rounded-[6px] border-2 border-dashed border-edge bg-paper px-2.5 py-1 text-13 font-extrabold">
+        <p className="inline-block rounded-[6px] border-2 border-dashed border-edge bg-paper px-2.5 py-1 text-13 font-extrabold">
           Demo payment — no money moves
         </p>
         <Button
@@ -238,19 +239,81 @@ function CartPanel({ cart, menuById, setQty, pickup, setPickup, onPaid }: {
   );
 }
 
-function TokenConfirmation({ order, onDismiss }: { order: Order; onDismiss: () => void }) {
+const ACTIVE: Order["status"][] = ["placed", "preparing", "ready"];
+
+/** Orders on the way first (the newest one highlighted), then finished ones folded away. */
+function YourOrders({ orders, now, loading, error, onRetry, onOpen }: {
+  orders: Order[];
+  now: Date | null;
+  loading: boolean;
+  error: unknown;
+  onRetry: () => void;
+  onOpen: (id: number) => void;
+}) {
+  const heading = <h2 id="orders-heading" className="font-display text-28 font-extrabold">Your orders</h2>;
+  if (loading || !now) {
+    return (
+      <section aria-labelledby="orders-heading">
+        {heading}
+        <Skeleton className="mt-4 h-36" />
+      </section>
+    );
+  }
+  if (error) {
+    return (
+      <section aria-labelledby="orders-heading">
+        {heading}
+        <div className="mt-4">
+          <ErrorState error={error} onRetry={onRetry} title="Your orders didn't load" />
+        </div>
+      </section>
+    );
+  }
+  if (!orders.length) return null; // nothing to show yet: the menu is the next step
+
+  const active = orders.filter((o) => ACTIVE.includes(o.status));
+  const finished = orders.filter((o) => !ACTIVE.includes(o.status));
+  const earlierToday = finished.filter((o) => sameDay(o.pickup_time, now));
+  const past = finished.filter((o) => !sameDay(o.pickup_time, now));
+  const newest = active.reduce<Order | null>((best, o) => (!best || o.created_at > best.created_at ? o : best), null);
+  const ticket = (order: Order) => (
+    <button
+      key={order.id}
+      type="button"
+      className="block w-full rounded-surface text-left"
+      onClick={() => onOpen(order.id)}
+      aria-label={`Token ${order.token_no}. Show details`}
+    >
+      <OrderPass order={order} now={now} />
+    </button>
+  );
+
   return (
-    <div role="status" className="relative -rotate-1 overflow-hidden rounded-[20px] border-2 border-edge bg-yellow p-5 text-on-fill shadow-hard-lg">
-      <div aria-hidden className="halftone pointer-events-none absolute -top-8 -right-8 size-36 rounded-full text-on-fill" />
-      <p className="relative font-bold">You're in. Your token is</p>
-      <p className="relative font-display text-64 leading-none font-extrabold">{order.token_no}</p>
-      <p className="relative mt-2 font-bold">
-        Pickup {timeOfDay(order.pickup_time)}. You'll get a notice here when it's ready.
-      </p>
-      <Button variant="secondary" className="relative mt-3" onClick={onDismiss}>
-        Order something else
-      </Button>
-    </div>
+    <section aria-labelledby="orders-heading">
+      {heading}
+      <div className="mt-4 space-y-4">
+        {active.length ? (
+          <ul className="space-y-5">
+            {active.map((order) => (
+              <li key={order.id}>
+                {order.id === newest?.id ? (
+                  <div className="rounded-[22px] border-2 border-edge bg-yellow p-2.5 shadow-hard">
+                    <p className="mb-2 px-1 text-13 font-extrabold text-on-fill">Newest order</p>
+                    {ticket(order)}
+                  </div>
+                ) : (
+                  ticket(order)
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="font-semibold text-muted">Nothing on the way. Order from the menu below.</p>
+        )}
+        <Collapsed title="Earlier today" count={earlierToday.length}>{earlierToday.map(ticket)}</Collapsed>
+        <Collapsed title="Past orders" count={past.length}>{past.map(ticket)}</Collapsed>
+      </div>
+    </section>
   );
 }
 
@@ -261,7 +324,6 @@ export function CanteenPage() {
   const mine = useQuery({ queryKey: ["canteen", "mine"], queryFn: () => api<{ orders: Order[] }>("/canteen/orders/mine") });
   const [cart, setCart] = useState<Cart>({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [created, setCreated] = useState<Order | null>(null);
   const [pickup, setPickup] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
 
@@ -272,7 +334,6 @@ export function CanteenPage() {
     if (!prefill) return;
     setCart(prefill.cart);
     setPickup(prefill.pickup);
-    setCreated(null);
     if (!window.matchMedia("(min-width: 1024px)").matches) setCartOpen(true);
   }, [location.key]); // once per navigation, not on every render
 
@@ -290,11 +351,10 @@ export function CanteenPage() {
       return next;
     });
 
-  const onPaid = (order: Order) => {
+  const onPaid = () => {
     setCart({});
     setPickup(null);
     setCartOpen(false);
-    setCreated(order);
   };
 
   const cartPanel = (
@@ -303,114 +363,91 @@ export function CanteenPage() {
 
   return (
     <div>
-      <header className="relative overflow-hidden rounded-[24px] border-2 border-edge bg-yellow px-5 py-6 text-on-fill shadow-hard-lg sm:px-7">
-        <div aria-hidden className="halftone pointer-events-none absolute -top-10 -right-10 size-52 rounded-full text-on-fill" />
-        <UtensilsCrossed aria-hidden className="absolute right-5 bottom-4 size-20 -rotate-12 opacity-20 sm:size-28" />
-        <h1 className="relative font-display text-40 leading-none font-extrabold sm:text-64">Canteen</h1>
-        <p className="relative mt-2 max-w-md text-17 font-semibold">Order ahead and skip the queue. Pick it up when you're free.</p>
-      </header>
+      <PageHeading
+        title="Canteen"
+        subtitle="Order ahead, skip the queue."
+        icon={UtensilsCrossed}
+        className="bg-yellow text-on-fill"
+      />
 
-      {created ? (
-        <div className="mt-6">
-          <TokenConfirmation order={created} onDismiss={() => setCreated(null)} />
-        </div>
-      ) : null}
+      <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-8">
+          <YourOrders
+            orders={orders}
+            now={now}
+            loading={mine.isPending}
+            error={mine.isError ? mine.error : null}
+            onRetry={() => mine.refetch()}
+            onOpen={setSelected}
+          />
 
-      <div className="mt-7 grid items-start gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <section aria-labelledby="menu-heading" className="min-w-0">
-          <h2 id="menu-heading" className="font-display text-28 font-extrabold">Menu</h2>
-          {menu.isPending ? (
-            <div className="mt-4 space-y-3" aria-busy="true" aria-label="Loading the menu">
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20" />
-              ))}
-            </div>
-          ) : menu.isError ? (
-            <div className="mt-4">
-              <ErrorState error={menu.error} onRetry={() => menu.refetch()} title="The menu didn't load" />
-            </div>
-          ) : items.length === 0 ? (
-            <div className="mt-4">
-              <EmptyState icon={UtensilsCrossed} title="No menu yet">
-                The canteen hasn't put up today's menu. Check back soon.
-              </EmptyState>
-            </div>
-          ) : (
-            <>
-              <nav aria-label="Menu sections" className="mt-3 flex flex-wrap gap-2">
-                {menu.data.categories
-                  .filter((c) => items.some((i) => i.category === c))
-                  .map((c) => (
-                    <a
-                      key={c}
-                      href={`#menu-${c}`}
-                      className="press rounded-full border-2 border-edge bg-sheet px-3 py-1.5 text-15 font-bold shadow-hard-sm"
-                    >
-                      {categoryName(c)}
-                    </a>
-                  ))}
-              </nav>
-              {menu.data.categories.map((category) => {
-                const inCategory = items.filter((i) => i.category === category);
-                if (!inCategory.length) return null;
-                return (
-                  <section key={category} id={`menu-${category}`} className="mt-6 scroll-mt-12" aria-label={categoryName(category)}>
-                    <h3 className="font-display text-21 font-extrabold">{categoryName(category)}</h3>
-                    <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)] xl:grid-cols-2">
-                      {inCategory.map((item) => (
-                        <MenuCard key={item.id} item={item} qty={cart[item.id] ?? 0} onChange={(qty) => setQty(item.id, qty)} />
-                      ))}
-                    </ul>
-                  </section>
-                );
-              })}
-            </>
-          )}
-        </section>
-
-        <div className="min-w-0 space-y-8 lg:sticky lg:top-6">
-          {desktop ? (
-            <section aria-labelledby="cart-heading" className="rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard sm:p-5">
-              <h2 id="cart-heading" className="mb-4 font-display text-28 font-extrabold">Your order</h2>
-              {cartPanel}
-            </section>
-          ) : null}
-
-          <section aria-labelledby="orders-heading">
-            <h2 id="orders-heading" className="font-display text-28 font-extrabold">Your orders</h2>
-            <div className="mt-4">
-              {mine.isPending || !now ? (
-                <Skeleton className="h-36" />
-              ) : mine.isError ? (
-                <ErrorState error={mine.error} onRetry={() => mine.refetch()} title="Your orders didn't load" />
-              ) : orders.length === 0 ? (
-                <EmptyState icon={UtensilsCrossed} title="No orders yet">
-                  Add something from the menu. You get a token and pick it up when you're free.
+          <section aria-labelledby="menu-heading" className="min-w-0">
+            <h2 id="menu-heading" className="font-display text-28 font-extrabold">Menu</h2>
+            {menu.isPending ? (
+              <div className="mt-4 space-y-3" aria-busy="true" aria-label="Loading the menu">
+                {[0, 1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-20" />
+                ))}
+              </div>
+            ) : menu.isError ? (
+              <div className="mt-4">
+                <ErrorState error={menu.error} onRetry={() => menu.refetch()} title="The menu didn't load" />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="mt-4">
+                <EmptyState icon={UtensilsCrossed} title="No menu yet">
+                  The canteen hasn't put up today's menu. Check back soon.
                 </EmptyState>
-              ) : (
-                <ul className="space-y-5">
-                  {orders.map((order, index) => (
-                    <li key={order.id} className={cn("transition-transform hover:rotate-0", index % 2 ? "rotate-1" : "-rotate-1")}>
-                      <button
-                        type="button"
-                        className="block w-full rounded-surface text-left"
-                        onClick={() => setSelected(order.id)}
-                        aria-label={`Token ${order.token_no}. Show details`}
+              </div>
+            ) : (
+              <>
+                <nav aria-label="Menu sections" className="mt-3 flex flex-wrap gap-2">
+                  {menu.data.categories
+                    .filter((c) => items.some((i) => i.category === c))
+                    .map((c) => (
+                      <a
+                        key={c}
+                        href={`#menu-${c}`}
+                        className="press rounded-full border-2 border-edge bg-sheet px-3 py-1.5 text-15 font-bold shadow-hard-sm"
                       >
-                        <OrderPass order={order} now={now} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                        {categoryName(c)}
+                      </a>
+                    ))}
+                </nav>
+                {menu.data.categories.map((category) => {
+                  const inCategory = items.filter((i) => i.category === category);
+                  if (!inCategory.length) return null;
+                  return (
+                    <section key={category} id={`menu-${category}`} className="mt-6 scroll-mt-12" aria-label={categoryName(category)}>
+                      <h3 className="font-display text-21 font-extrabold">{categoryName(category)}</h3>
+                      <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)] xl:grid-cols-2">
+                        {inCategory.map((item) => (
+                          <MenuCard key={item.id} item={item} qty={cart[item.id] ?? 0} onChange={(qty) => setQty(item.id, qty)} />
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                })}
+              </>
+            )}
           </section>
         </div>
+
+        {desktop ? (
+          // Stays in view while the menu scrolls; scrolls itself if the window is short.
+          <section
+            aria-labelledby="cart-heading"
+            className="rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto"
+          >
+            <h2 id="cart-heading" className="mb-4 font-display text-28 font-extrabold">Your order</h2>
+            {cartPanel}
+          </section>
+        ) : null}
       </div>
 
       {/* Phones: a cart bar above the dock opens the cart as a sheet. */}
       {!desktop && count > 0 ? (
-        <div className="fixed inset-x-3 bottom-[6.25rem] z-20 mx-auto max-w-lg pb-[env(safe-area-inset-bottom)]">
+        <div className="fixed inset-x-3 bottom-[calc(9.5rem+env(safe-area-inset-bottom))] z-20 mx-auto max-w-lg">
           <Button
             size="lg"
             className="w-full justify-between border-edge bg-yellow text-on-fill shadow-hard"
@@ -423,6 +460,7 @@ export function CanteenPage() {
           </Button>
         </div>
       ) : null}
+      {!desktop && count > 0 ? <div aria-hidden className="h-20" /> : null}
       {!desktop ? (
         <Sheet open={cartOpen} onOpenChange={setCartOpen} title="Your order">
           {cartPanel}

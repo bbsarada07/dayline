@@ -45,7 +45,6 @@ function WhatIf({ subject }: { subject: SubjectAttendance }) {
 
   return (
     <div className="relative mt-3 overflow-hidden rounded-[14px] border-2 border-edge bg-hero p-4 text-hero-text">
-      <div aria-hidden className="halftone pointer-events-none absolute -right-8 -bottom-8 size-32 rounded-full text-magenta" />
       <div className="relative flex flex-wrap items-center gap-x-3 gap-y-2">
         <span id={`miss-label-${subject.subject_id}`} className="font-bold">If I miss the next</span>
         <div className="inline-flex items-center gap-2" role="group" aria-labelledby={`miss-label-${subject.subject_id}`}>
@@ -163,7 +162,6 @@ export function AttendancePage() {
           data && belowCount ? "bg-alert text-white" : "bg-hero text-hero-text",
         )}
       >
-        <div aria-hidden className="halftone pointer-events-none absolute -top-12 -right-12 size-56 rounded-full text-white" />
         <h1 className="relative font-display text-40 leading-none font-extrabold sm:text-64">Attendance</h1>
         <p className="relative mt-3 flex items-center gap-2 text-17 font-bold sm:text-21">
           {!data ? (

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CalendarClock, CalendarDays, Coffee, MapPin, Mic, Printer, TriangleAlert, UtensilsCrossed } from "lucide-react";
+import { DemoTimeLine, useDemoOn } from "@/components/DemoControls";
 import { LiveBadge } from "@/components/LiveBadge";
 import { EmptyState, ErrorState } from "@/components/states";
 import { buttonVariants } from "@/components/ui/button";
@@ -79,20 +80,20 @@ function NowCard({ items, now }: { items: DayItem[]; now: Date }) {
 }
 
 function Hero({ name, fullName, now, items }: { name: string; fullName: string; now: Date; items: DayItem[] | null }) {
+  const { on: demoOn } = useDemoOn();
   const initials = fullName.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
   return (
     <section className="relative -mx-4 -mt-4 overflow-hidden rounded-b-[28px] border-b-2 border-edge bg-hero px-5 pt-5 pb-6 text-hero-text sm:mx-0 sm:mt-0 sm:rounded-[24px] sm:border-2 sm:p-7 sm:shadow-hard-lg">
-      <div aria-hidden className="halftone pointer-events-none absolute -top-16 -right-16 size-64 rounded-full text-magenta" />
-      <div aria-hidden className="halftone pointer-events-none absolute -bottom-20 left-1/3 size-56 rounded-full text-cyan opacity-60" />
       <div className="relative flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-full border-2 border-hero-muted/50 px-2.5 py-0.5 text-13 font-bold">{dayDate(now)}</span>
+        {/* On phones in the demo, the date moves under the greeting with the demo time. */}
+        <span className={cn("rounded-full border-2 border-hero-muted/50 px-2.5 py-0.5 text-13 font-bold", demoOn && "max-lg:invisible")}>{dayDate(now)}</span>
         <span className="flex items-center gap-2">
           <LiveBadge onDark />
           {/* Phones reach Profile from here; the dock holds the four main screens. */}
           <Link
             to="/profile"
             aria-label="Your profile"
-            className="press flex size-11 rotate-3 items-center justify-center rounded-[12px] border-2 border-hero-text bg-magenta font-display text-15 font-extrabold text-white lg:hidden"
+            className="press flex size-11 items-center justify-center rounded-[12px] border-2 border-hero-text bg-magenta font-display text-15 font-extrabold text-white lg:hidden"
           >
             {initials}
           </Link>
@@ -104,6 +105,7 @@ function Hero({ name, fullName, now, items }: { name: string; fullName: string; 
           {name}
         </span>
       </h1>
+      <DemoTimeLine className="relative mt-2 text-hero-muted lg:hidden" />
       <div className="relative">{items ? <NowCard items={items} now={now} /> : <Skeleton className="mt-5 h-24 border-hero-muted/40 bg-transparent" />}</div>
     </section>
   );
@@ -179,7 +181,7 @@ function Nudges({ nudges }: { nudges: Nudge[] }) {
         const tone = NUDGE_TONE[nudge.agent];
         return (
           <li key={nudge.id} className="flex items-center gap-3 rounded-[16px] border-2 border-edge bg-sheet p-3 shadow-hard">
-            <span className={cn("inline-flex size-10 shrink-0 -rotate-3 items-center justify-center rounded-[10px] border-2 border-edge", tone.className)}>
+            <span className={cn("inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] border-2 border-edge", tone.className)}>
               <tone.icon className="size-5" aria-hidden />
             </span>
             <p className="min-w-0 flex-1 font-bold">{nudge.text}</p>
@@ -188,7 +190,7 @@ function Nudges({ nudges }: { nudges: Nudge[] }) {
                 {nudge.action}
               </Link>
             ) : (
-              <button type="button" onClick={() => run(nudge)} disabled={ask.busy} className={buttonVariants({ className: "shrink-0" })}>
+              <button type="button" onClick={() => run(nudge)} disabled={ask.busy} className={buttonVariants({ variant: "secondary", className: "shrink-0" })}>
                 {nudge.action}
               </button>
             )}

@@ -19,12 +19,12 @@ export function useBecameWhileShown<T>(value: T, target: T): boolean {
 
 /**
  * A rubber stamp on a pass ("Collected", "Ready"). With `press`, it presses onto the
- * pass at an angle when it appears (spec 9.1 motion 3); instant with reduced motion.
+ * pass when it appears (spec 9.1 motion 3); instant with reduced motion.
  */
 export function Stamp({ text, tone, press = false }: { text: string; tone: keyof typeof TONE; press?: boolean }) {
   const reduce = useReducedMotion();
   const className = cn(
-    "inline-block -rotate-6 rounded-[6px] border-[3px] px-2 py-0.5 font-display text-15 leading-none font-extrabold whitespace-nowrap",
+    "inline-block rounded-[6px] border-[3px] px-2 py-0.5 font-display text-15 leading-none font-extrabold whitespace-nowrap",
     TONE[tone],
   );
   if (!press || reduce) return <span className={className}>{text}</span>;
@@ -32,8 +32,8 @@ export function Stamp({ text, tone, press = false }: { text: string; tone: keyof
     <LazyMotion features={domAnimation} strict>
       <m.span
         className={className}
-        initial={{ scale: 2.4, rotate: -24, opacity: 0 }}
-        animate={{ scale: 1, rotate: -6, opacity: 1 }}
+        initial={{ scale: 2.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", duration: 0.32, bounce: 0.35 }}
       >
         {text}

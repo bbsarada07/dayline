@@ -33,7 +33,7 @@ function CodeTag({ code }: { code: string }) {
 
 function UrgentStamp() {
   return (
-    <span className="inline-block -rotate-6 rounded-[6px] border-[3px] border-magenta-text px-1.5 font-display text-13 font-extrabold text-magenta-text">
+    <span className="inline-block rounded-[6px] border-[3px] border-magenta-text px-1.5 font-display text-13 font-extrabold text-magenta-text">
       Urgent
     </span>
   );

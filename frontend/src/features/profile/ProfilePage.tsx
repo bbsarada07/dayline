@@ -2,6 +2,7 @@ import { Brain, ChevronRight, CreditCard, LogOut, Monitor, Moon, Sun } from "luc
 import { Link } from "react-router";
 import { Brand } from "@/app/layouts";
 import { Barcode } from "@/components/Barcode";
+import { ResetDemoButton } from "@/components/DemoControls";
 import { Button } from "@/components/ui/button";
 import { useLogout, useMe } from "@/lib/auth";
 import { useTheme, type ThemePref } from "@/lib/theme";
@@ -31,16 +32,15 @@ export function ProfilePage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       {/* The student's ID card. */}
-      <section aria-label="Your ID" className="-rotate-1 overflow-hidden rounded-[22px] border-2 border-edge bg-sheet shadow-hard-lg">
+      <section aria-label="Your ID" className="overflow-hidden rounded-[22px] border-2 border-edge bg-sheet shadow-hard-lg">
         <div className="relative flex items-center justify-between overflow-hidden bg-hero px-5 py-3 text-hero-text">
-          <div aria-hidden className="halftone pointer-events-none absolute -top-6 right-10 size-24 rounded-full text-magenta" />
           <Brand onDark className="relative text-17" />
           <span className="relative text-13 font-bold text-hero-muted">Student ID</span>
         </div>
         <div className="flex items-center gap-4 p-5">
           <span
             aria-hidden
-            className="flex size-20 shrink-0 rotate-3 items-center justify-center rounded-[16px] border-2 border-edge bg-magenta font-display text-28 font-extrabold text-white shadow-hard-sm"
+            className="flex size-20 shrink-0 items-center justify-center rounded-[16px] border-2 border-edge bg-magenta font-display text-28 font-extrabold text-white shadow-hard-sm"
           >
             {initials(me.name)}
           </span>
@@ -67,7 +67,7 @@ export function ProfilePage() {
         to="/memory"
         className="press flex items-center gap-3 rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard"
       >
-        <span className="flex size-11 shrink-0 -rotate-6 items-center justify-center rounded-[12px] border-2 border-edge bg-hero text-hero-text">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-[12px] border-2 border-edge bg-hero text-hero-text">
           <Brain className="size-5" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
@@ -104,6 +104,9 @@ export function ProfilePage() {
           })}
         </div>
       </section>
+
+      {/* Laptops reset from the sidebar chip; phones and tablets reset here. */}
+      <ResetDemoButton className="lg:hidden" />
 
       <Button variant="secondary" size="lg" className="w-full" onClick={() => logout.mutate()} disabled={logout.isPending}>
         <LogOut aria-hidden /> Log out

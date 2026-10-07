@@ -38,7 +38,7 @@ export function OmiConnect() {
     <section aria-labelledby="omi-heading" className="rounded-[18px] border-2 border-edge bg-sheet p-4 shadow-hard">
       <div className="flex items-start justify-between gap-3">
         <h2 id="omi-heading" className="flex items-center gap-2.5 font-display text-21 font-extrabold">
-          <span className="flex size-10 -rotate-6 items-center justify-center rounded-[11px] border-2 border-edge bg-hero text-hero-text">
+          <span className="flex size-10 items-center justify-center rounded-[11px] border-2 border-edge bg-hero text-hero-text">
             <Mic className="size-5" aria-hidden />
           </span>
           Connect Omi

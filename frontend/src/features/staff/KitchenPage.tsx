@@ -77,7 +77,7 @@ function PrepPanel({ prep, error, onRetry }: { prep: PrepList | undefined; error
   return (
     <section aria-labelledby="prep-heading" className="rounded-[20px] border-2 border-edge bg-sheet p-4 shadow-hard">
       <h2 id="prep-heading" className="flex items-center gap-2 font-display text-28 font-extrabold">
-        <Soup className="size-7 -rotate-6" aria-hidden /> Prep list
+        <Soup className="size-7" aria-hidden /> Prep list
       </h2>
       <p className="text-13 font-semibold text-muted">What to cook for each 15-minute pickup window. Orders not ready yet.</p>
       {error && !prep ? (
@@ -314,7 +314,7 @@ export function KitchenPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-3 font-display text-40 leading-none font-extrabold sm:text-64">
-            <ChefHat className="size-10 -rotate-6 sm:size-14" aria-hidden />
+            <ChefHat className="size-10 sm:size-14" aria-hidden />
             <span className="[text-shadow:3px_3px_0_var(--yellow)]">Kitchen</span>
           </h1>
           <p className="mt-2 font-semibold text-muted">Today's pre-orders. New ones appear on their own.</p>

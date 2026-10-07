@@ -120,7 +120,7 @@ function ClassBlock({ item, status, isNext, now }: { item: DayItem; status: Stat
         current ? "bg-magenta text-white" : "border-l-[10px] border-l-magenta bg-sheet",
       )}
     >
-      {current ? <div aria-hidden className="halftone pointer-events-none absolute -top-8 -right-8 size-32 rounded-full text-white" /> : null}
+      
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-display text-21 leading-tight font-extrabold">
@@ -205,11 +205,11 @@ function PassDrop({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-function PassRow({ pass, index }: { pass: DayPass; index: number }) {
+function PassRow({ pass }: { pass: DayPass }) {
   return (
     <Row time={clockTime(pass.at)} node={pass.tone}>
       <PassDrop id={pass.id}>
-        <div className={cn("transition-transform hover:rotate-0", index % 2 ? "rotate-1" : "-rotate-1")}>{pass.content}</div>
+        <div>{pass.content}</div>
       </PassDrop>
     </Row>
   );
@@ -226,7 +226,7 @@ function between(passes: DayPass[], from: number, to: number): DayPass[] {
 /** The student's day drawn as a line of periods, with a moving "now" marker and pinned passes. */
 export function DayLine({ items, now, passes = [] }: { items: DayItem[]; now: Date; passes?: DayPass[] }) {
   const sorted = [...passes].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-  const row = (pass: DayPass) => <PassRow key={pass.id} pass={pass} index={sorted.indexOf(pass)} />;
+  const row = (pass: DayPass) => <PassRow key={pass.id} pass={pass} />;
 
   if (items.length === 0) {
     return (

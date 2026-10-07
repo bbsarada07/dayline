@@ -135,9 +135,8 @@ export function MemoryPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <header className="relative overflow-hidden rounded-[24px] border-2 border-edge bg-hero px-5 py-6 text-hero-text shadow-hard-lg sm:px-7">
-        <div aria-hidden className="halftone pointer-events-none absolute -top-12 -right-12 size-56 rounded-full text-cyan" />
-        <Brain aria-hidden className="absolute right-5 bottom-4 size-20 rotate-6 opacity-20 sm:size-28" />
+      <header className="relative overflow-hidden rounded-[24px] border-2 border-edge bg-hero px-5 py-6 text-hero-text shadow-hard-lg sm:px-7">
+        <Brain aria-hidden className="absolute right-5 bottom-4 size-20 opacity-20 sm:size-28" />
         <h1 className="relative font-display text-40 leading-none font-extrabold sm:text-64">Memory</h1>
         <p className="relative mt-2 max-w-lg text-17 font-semibold text-hero-muted">
           What Dayline remembers about you. The canteen, print and timetable agents all read and write here, so what one
